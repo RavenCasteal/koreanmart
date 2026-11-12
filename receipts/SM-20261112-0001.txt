@@ -1,0 +1,19 @@
+       NEIGHBORHOOD MART        
+Foods  ·  Drinks  ·  Everyday needs
+--------------------------------
+Txn no.         SM-20261112-0001
+Date/time    2026-11-12 11:44:31
+Cashier                  cashier
+--------------------------------
+Boy Bawang Garlic 50 g
+[4800010234560]
+1 x ₱18.00                ₱18.00
+--------------------------------
+TOTAL                     ₱18.00
+--------------------------------
+Payment                     Cash
+Tendered                  ₱18.00
+Change                     ₱0.00
+--------------------------------
+         Amounts in PHP         
+      Salamat, thank you!       

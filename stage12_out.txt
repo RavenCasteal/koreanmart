@@ -1,0 +1,112 @@
+test_add_product_creates_a_sellable_barcoded_item (tests.test_stage12.ProductCrudTests.test_add_product_creates_a_sellable_barcoded_item) ... ok
+test_barcode_accepts_ean13_and_strips_separators (tests.test_stage12.ProductCrudTests.test_barcode_accepts_ean13_and_strips_separators) ... ok
+test_barcode_requires_6_to_14_digits (tests.test_stage12.ProductCrudTests.test_barcode_requires_6_to_14_digits) ... ok
+test_cashier_cannot_manage_products (tests.test_stage12.ProductCrudTests.test_cashier_cannot_manage_products) ... ok
+test_deactivate_hides_a_product_from_the_scanner (tests.test_stage12.ProductCrudTests.test_deactivate_hides_a_product_from_the_scanner) ... ok
+test_duplicate_active_barcode_is_rejected (tests.test_stage12.ProductCrudTests.test_duplicate_active_barcode_is_rejected) ... ok
+test_duplicate_active_name_is_rejected (tests.test_stage12.ProductCrudTests.test_duplicate_active_name_is_rejected) ... ok
+test_invalid_category_and_price_are_rejected (tests.test_stage12.ProductCrudTests.test_invalid_category_and_price_are_rejected) ... ok
+test_list_products_supports_search_and_category_filter (tests.test_stage12.ProductCrudTests.test_list_products_supports_search_and_category_filter) ... FAIL
+test_no_actor_and_no_session_falls_back_to_the_live_session (tests.test_stage12.ProductCrudTests.test_no_actor_and_no_session_falls_back_to_the_live_session) ... ok
+test_opening_stock_writes_a_real_stock_in_line (tests.test_stage12.ProductCrudTests.test_opening_stock_writes_a_real_stock_in_line) ... ok
+test_summary_counts_come_from_sqlite (tests.test_stage12.ProductCrudTests.test_summary_counts_come_from_sqlite) ... ok
+test_update_product_never_touches_physical_stock (tests.test_stage12.ProductCrudTests.test_update_product_never_touches_physical_stock) ... ok
+test_currency_is_still_php (tests.test_stage12.ReceiptAndWiringTests.test_currency_is_still_php) ... ok
+test_issue_store_receipt_archives_without_printing (tests.test_stage12.ReceiptAndWiringTests.test_issue_store_receipt_archives_without_printing) ... ok
+test_legacy_ramen_receipt_builder_still_works (tests.test_stage12.ReceiptAndWiringTests.test_legacy_ramen_receipt_builder_still_works) ... ok
+test_live_pos_is_the_barcode_basket_view (tests.test_stage12.ReceiptAndWiringTests.test_live_pos_is_the_barcode_basket_view) ... ok
+test_manage_products_capability_is_manager_only (tests.test_stage12.ReceiptAndWiringTests.test_manage_products_capability_is_manager_only) ... ok
+test_new_modules_use_only_the_peso_sign (tests.test_stage12.ReceiptAndWiringTests.test_new_modules_use_only_the_peso_sign) ... ok
+test_no_new_third_party_dependency_for_barcodes (tests.test_stage12.ReceiptAndWiringTests.test_no_new_third_party_dependency_for_barcodes) ... ok
+test_products_page_is_registered_and_manager_only (tests.test_stage12.ReceiptAndWiringTests.test_products_page_is_registered_and_manager_only) ... ok
+test_reprint_and_void_markers (tests.test_stage12.ReceiptAndWiringTests.test_reprint_and_void_markers) ... ok
+test_startup_runs_the_stage12_bootstrap (tests.test_stage12.ReceiptAndWiringTests.test_startup_runs_the_stage12_bootstrap) ... ok
+test_store_receipt_lists_every_scanned_product (tests.test_stage12.ReceiptAndWiringTests.test_store_receipt_lists_every_scanned_product) ... ok
+test_store_receipt_never_uses_a_yen_or_dollar_sign (tests.test_stage12.ReceiptAndWiringTests.test_store_receipt_never_uses_a_yen_or_dollar_sign) ... ok
+test_cancelling_before_confirm_writes_nothing (tests.test_stage12.SaleTests.test_cancelling_before_confirm_writes_nothing) ... ok
+test_cashier_may_record_a_sale_but_not_void_it (tests.test_stage12.SaleTests.test_cashier_may_record_a_sale_but_not_void_it) ... ok
+test_confirm_deducts_every_product_and_writes_one_stock_out (tests.test_stage12.SaleTests.test_confirm_deducts_every_product_and_writes_one_stock_out) ... ok
+test_history_search_finds_a_sold_product (tests.test_stage12.SaleTests.test_history_search_finds_a_sold_product) ... ok
+test_insufficient_stock_rolls_back_the_whole_sale (tests.test_stage12.SaleTests.test_insufficient_stock_rolls_back_the_whole_sale) ... ok
+test_lookup_product_reports_unknown_barcodes (tests.test_stage12.SaleTests.test_lookup_product_reports_unknown_barcodes) ... ok
+test_no_negative_stock_after_a_sale (tests.test_stage12.SaleTests.test_no_negative_stock_after_a_sale) ... ERROR
+test_normalize_cart_merges_duplicate_barcodes (tests.test_stage12.SaleTests.test_normalize_cart_merges_duplicate_barcodes) ... ok
+test_normalize_cart_rejects_bad_baskets (tests.test_stage12.SaleTests.test_normalize_cart_rejects_bad_baskets) ... ok
+test_preview_is_read_only (tests.test_stage12.SaleTests.test_preview_is_read_only) ... ok
+test_preview_reports_a_stock_shortage (tests.test_stage12.SaleTests.test_preview_reports_a_stock_shortage) ... ok
+test_receipt_snapshots_survive_a_later_rename (tests.test_stage12.SaleTests.test_receipt_snapshots_survive_a_later_rename) ... ok
+test_retired_product_cannot_be_sold (tests.test_stage12.SaleTests.test_retired_product_cannot_be_sold) ... ok
+test_sale_is_visible_in_the_existing_movement_view (tests.test_stage12.SaleTests.test_sale_is_visible_in_the_existing_movement_view) ... ok
+test_short_payment_rolls_back_the_whole_sale (tests.test_stage12.SaleTests.test_short_payment_rolls_back_the_whole_sale) ... ok
+test_void_is_additive_not_an_absolute_balance_reset (tests.test_stage12.SaleTests.test_void_is_additive_not_an_absolute_balance_reset) ... ok
+test_void_restores_stock_and_keeps_history (tests.test_stage12.SaleTests.test_void_restores_stock_and_keeps_history) ... ok
+test_void_twice_is_rejected (tests.test_stage12.SaleTests.test_void_twice_is_rejected) ... ok
+test_app_meta_records_the_stage12_schema_version (tests.test_stage12.SchemaTests.test_app_meta_records_the_stage12_schema_version) ... ok
+test_bootstrap_is_idempotent (tests.test_stage12.SchemaTests.test_bootstrap_is_idempotent) ... ok
+test_bootstrap_never_overwrites_an_existing_manager_catalog (tests.test_stage12.SchemaTests.test_bootstrap_never_overwrites_an_existing_manager_catalog) ... FAIL
+test_bootstrap_preserves_all_user_accounts_and_hashes (tests.test_stage12.SchemaTests.test_bootstrap_preserves_all_user_accounts_and_hashes) ... ok
+test_bootstrap_records_opening_balances_as_stock_in (tests.test_stage12.SchemaTests.test_bootstrap_records_opening_balances_as_stock_in) ... ok
+test_bootstrap_seeds_a_barcoded_convenience_store_catalog (tests.test_stage12.SchemaTests.test_bootstrap_seeds_a_barcoded_convenience_store_catalog) ... ok
+test_bootstrap_soft_retires_ramen_demo_ingredients (tests.test_stage12.SchemaTests.test_bootstrap_soft_retires_ramen_demo_ingredients) ... ok
+test_catalog_ready_reflects_the_marker (tests.test_stage12.SchemaTests.test_catalog_ready_reflects_the_marker) ... ok
+test_ensure_schema_adds_exactly_four_columns (tests.test_stage12.SchemaTests.test_ensure_schema_adds_exactly_four_columns) ... ok
+test_ensure_schema_is_idempotent (tests.test_stage12.SchemaTests.test_ensure_schema_is_idempotent) ... ok
+test_fresh_v4_database_does_not_have_product_columns (tests.test_stage12.SchemaTests.test_fresh_v4_database_does_not_have_product_columns) ... ok
+test_store_tables_and_indexes_exist (tests.test_stage12.SchemaTests.test_store_tables_and_indexes_exist) ... ok
+test_user_version_is_not_changed_by_stage12 (tests.test_stage12.SchemaTests.test_user_version_is_not_changed_by_stage12) ... ok
+
+======================================================================
+ERROR: test_no_negative_stock_after_a_sale (tests.test_stage12.SaleTests.test_no_negative_stock_after_a_sale)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\diazp\WorkBuddy AI\2026-11-08-17-46-19\RamenInventorySystem\tests\test_stage12.py", line 551, in test_no_negative_stock_after_a_sale
+    self._sale([(COKE, 60)])
+    ~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\diazp\WorkBuddy AI\2026-11-08-17-46-19\RamenInventorySystem\tests\test_stage12.py", line 89, in _sale
+    return store_sales.confirm_sale(
+           ~~~~~~~~~~~~~~~~~~~~~~~~^
+        cart, "Cash", tendered,
+        ^^^^^^^^^^^^^^^^^^^^^^^
+        user_id=1, db_path=self.db_path, actor=actor,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\diazp\WorkBuddy AI\2026-11-08-17-46-19\RamenInventorySystem\store_sales.py", line 297, in confirm_sale
+    raise ValueError(
+    ...<2 lines>...
+    )
+ValueError: Amount tendered is less than the total. A price may have changed - check the basket again.
+
+======================================================================
+FAIL: test_list_products_supports_search_and_category_filter (tests.test_stage12.ProductCrudTests.test_list_products_supports_search_and_category_filter)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\diazp\WorkBuddy AI\2026-11-08-17-46-19\RamenInventorySystem\tests\test_stage12.py", line 332, in test_list_products_supports_search_and_category_filter
+    self.assertEqual(
+    ~~~~~~~~~~~~~~~~^
+        len(products.list_products("Cola", db_path=self.db_path)), 1
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+AssertionError: 2 != 1
+
+======================================================================
+FAIL: test_bootstrap_never_overwrites_an_existing_manager_catalog (tests.test_stage12.SchemaTests.test_bootstrap_never_overwrites_an_existing_manager_catalog)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\diazp\WorkBuddy AI\2026-11-08-17-46-19\RamenInventorySystem\tests\test_stage12.py", line 230, in test_bootstrap_never_overwrites_an_existing_manager_catalog
+    self.assertEqual(
+    ~~~~~~~~~~~~~~~~^
+        products.list_products(db_path=other)[0]["name"], "My Own Item"
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+AssertionError: 'Egg' != 'My Own Item'
+- Egg
++ My Own Item
+
+
+----------------------------------------------------------------------
+Ran 56 tests in 21.346s
+
+FAILED (failures=2, errors=1)

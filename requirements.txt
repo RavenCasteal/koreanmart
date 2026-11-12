@@ -1,0 +1,17 @@
+# Ramen Inventory System - Python 3.13 (Windows 10/11)
+#
+# Install with:  python -m pip install -r requirements.txt
+#
+# Part of the Python standard library (nothing to install):
+#   sqlite3   - local database
+#   tkinter   - native GUI utilities, required by CustomTkinter
+#   hashlib   - PBKDF2 password hashing
+#   hmac      - constant-time hash comparison
+#   datetime  - local timestamps
+#
+# Third-party packages:
+customtkinter>=5.2.2,<6
+Pillow>=11.0.0,<12
+
+# Note: customtkinter installs "darkdetect" and "packaging" automatically
+# as its own dependencies. They do not need to be listed here.

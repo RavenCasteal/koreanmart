@@ -1,0 +1,37 @@
+
+======================================================================
+2026-11-10 13:23:26  Unhandled error
+Traceback (most recent call last):
+  File "C:\Users\diazp\WorkBuddy AI\2026-11-08-17-46-19\RamenInventorySystem\main.py", line 212, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "C:\Users\diazp\WorkBuddy AI\2026-11-08-17-46-19\RamenInventorySystem\main.py", line 199, in main
+    app.mainloop()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\diazp\WorkBuddy AI\2026-11-08-17-46-19\RamenInventorySystem\.venv\Lib\site-packages\customtkinter\windows\ctk_tk.py", line 165, in mainloop
+    super().mainloop(*args, **kwargs)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\diazp\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 1611, in mainloop
+    self.tk.mainloop(n)
+    ~~~~~~~~~~~~~~~~^^^
+KeyboardInterrupt
+
+======================================================================
+2026-11-11 17:17:55  Unhandled error
+Traceback (most recent call last):
+  File "C:\Users\diazp\WorkBuddy AI\2026-11-08-17-46-19\RamenInventorySystem\main.py", line 220, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "C:\Users\diazp\WorkBuddy AI\2026-11-08-17-46-19\RamenInventorySystem\main.py", line 207, in main
+    app.mainloop()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\diazp\WorkBuddy AI\2026-11-08-17-46-19\RamenInventorySystem\.venv\Lib\site-packages\customtkinter\windows\ctk_tk.py", line 165, in mainloop
+    super().mainloop(*args, **kwargs)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\diazp\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 1611, in mainloop
+    self.tk.mainloop(n)
+    ~~~~~~~~~~~~~~~~^^^
+  File "C:\Users\diazp\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 2095, in __call__
+    def __call__(self, *args):
+    
+KeyboardInterrupt
