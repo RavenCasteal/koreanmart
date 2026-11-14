@@ -46,13 +46,18 @@ class Header(ctk.CTkFrame):
             left, text="Dashboard", font=font(20, "bold"), text_color=TEXT
         )
         self.title_label.pack(anchor="w")
+        # Stage 13: a long page subtitle used to squeeze the right-hand pack
+        # group, clipping the date to "ov 12, 202". Wrapping the subtitle at
+        # 290px keeps the left group narrow enough for every button, the user
+        # label AND the full date to get their requested widths.
         self.subtitle_label = ctk.CTkLabel(
-            left, text="", font=font(11), text_color=TEXT_MUTED
+            left, text="", font=font(11), text_color=TEXT_MUTED,
+            wraplength=290, justify="left", anchor="w",
         )
         self.subtitle_label.pack(anchor="w")
 
         right = ctk.CTkFrame(self, fg_color="transparent")
-        right.pack(side="right", padx=22)
+        right.pack(side="right", padx=16)
 
         ctk.CTkButton(
             right,
@@ -110,6 +115,8 @@ class Header(ctk.CTkFrame):
             text=datetime.now().strftime("%b %d, %Y"),
             font=font(11),
             text_color=TEXT_MUTED,
+            width=76,
+            anchor="e",
         )
         self.date_label.pack(side="right", padx=(0, 6))
 

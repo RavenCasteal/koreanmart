@@ -43,6 +43,9 @@ import permissions
 
 STORE_LABEL = "Neighborhood Mart"
 CATALOG_VERSION = "12"
+# Stage 15 adds discount columns to store_sales. This is an app_meta marker,
+# NOT a PRAGMA user_version bump: database.py / schema.sql stay at v4.
+STAGE15_VERSION = "15"
 
 CATEGORIES: tuple[str, ...] = (
     "Ready-to-eat",
@@ -125,6 +128,18 @@ _NEW_COLUMNS: tuple[tuple[str, str], ...] = (
     ("category", "ALTER TABLE ingredients ADD COLUMN category TEXT NOT NULL DEFAULT 'Other'"),
     ("unit_price", "ALTER TABLE ingredients ADD COLUMN unit_price REAL NOT NULL DEFAULT 0 CHECK (unit_price >= 0)"),
     ("is_sellable", "ALTER TABLE ingredients ADD COLUMN is_sellable INTEGER NOT NULL DEFAULT 0 CHECK (is_sellable IN (0, 1))"),
+)
+
+# Stage 15 - Senior Citizen / PWD discount snapshots on store_sales.
+# Added with ALTER TABLE so an existing real database is upgraded in place.
+# Every column has a safe default, so pre-Stage-15 sales remain readable.
+_STAGE15_SALES_COLUMNS: tuple[tuple[str, str], ...] = (
+    ("subtotal_amount", "ALTER TABLE store_sales ADD COLUMN subtotal_amount REAL NOT NULL DEFAULT 0 CHECK (subtotal_amount >= 0)"),
+    ("discount_type", "ALTER TABLE store_sales ADD COLUMN discount_type TEXT NOT NULL DEFAULT ''"),
+    ("discount_rate", "ALTER TABLE store_sales ADD COLUMN discount_rate REAL NOT NULL DEFAULT 0 CHECK (discount_rate >= 0)"),
+    ("discount_amount", "ALTER TABLE store_sales ADD COLUMN discount_amount REAL NOT NULL DEFAULT 0 CHECK (discount_amount >= 0)"),
+    ("customer_name", "ALTER TABLE store_sales ADD COLUMN customer_name TEXT NOT NULL DEFAULT ''"),
+    ("customer_id", "ALTER TABLE store_sales ADD COLUMN customer_id TEXT NOT NULL DEFAULT ''"),
 )
 
 _INDEX_DDL: tuple[str, ...] = (
@@ -263,6 +278,7 @@ def ensure_schema(db_path: Any = None) -> dict[str, Any]:
     report so the startup path and the tests can assert what happened.
     """
     added: list[str] = []
+    added_sale_columns: list[str] = []
     with database.transaction(db_path) as conn:
         for statement in _DDL:
             conn.execute(statement)
@@ -273,10 +289,25 @@ def ensure_schema(db_path: Any = None) -> dict[str, Any]:
             if name not in existing:
                 conn.execute(statement)
                 added.append(name)
+        # Stage 15 keeps its own list so the Stage 12 "exactly four columns"
+        # regression test stays valid.
+        sales_columns = {
+            str(row[1]) for row in conn.execute("PRAGMA table_info(store_sales)")
+        }
+        for name, statement in _STAGE15_SALES_COLUMNS:
+            if name not in sales_columns:
+                conn.execute(statement)
+                added_sale_columns.append(name)
         for statement in _INDEX_DDL:
             conn.execute(statement)
         _set_meta(conn, "stage12_schema", CATALOG_VERSION)
-    return {"added_columns": added, "version": CATALOG_VERSION}
+        _set_meta(conn, "stage15_schema", STAGE15_VERSION)
+    return {
+        "added_columns": added,
+        "added_sale_columns": added_sale_columns,
+        "version": CATALOG_VERSION,
+        "stage15_version": STAGE15_VERSION,
+    }
 
 
 def catalog_ready(db_path: Any = None) -> bool:

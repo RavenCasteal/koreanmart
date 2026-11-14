@@ -35,6 +35,7 @@ from contextlib import contextmanager
 from typing import Any, Iterable, Iterator
 
 import database
+import discounts
 import permissions
 import products
 from formatting import CURRENCY_CODE
@@ -238,21 +239,30 @@ def _next_transaction_number(
 # Preview (READ ONLY - no writes of any kind)
 # ----------------------------------------------------------------------
 def preview_sale(
-    cart: Any, db_path: Any = None
+    cart: Any,
+    db_path: Any = None,
+    discount_type: Any = discounts.NO_DISCOUNT,
 ) -> dict[str, Any]:
-    """Price a basket without touching the database."""
+    """Price a basket without touching the database.
+
+    Stage 15: total_amount is the NET amount payable. The pre-discount
+    subtotal and the discount itself are returned separately, so the POS can
+    show the customer exactly what the 20% Senior/PWD discount removed.
+    """
     products.ensure_schema(db_path)
     cart_lines = normalize_cart(cart)
+    kind = discounts.normalize_discount_type(discount_type)
     with _read_snapshot(db_path) as conn:
-        lines, total, shortages = _resolve_lines(conn, cart_lines)
+        lines, subtotal, shortages = _resolve_lines(conn, cart_lines)
+    amounts = discounts.compute(subtotal, kind)
     return {
         "items": lines,
         "item_count": sum(int(line["quantity"]) for line in lines),
         "line_count": len(lines),
-        "total_amount": total,
         "currency_code": CURRENCY_CODE,
         "shortages": shortages,
         "can_confirm": not shortages,
+        **amounts,
     }
 
 
@@ -278,21 +288,37 @@ def confirm_sale(
     user_id: Any = None,
     db_path: Any = None,
     actor: Any = None,
+    *,
+    discount_type: Any = None,
+    customer_name: Any = None,
+    customer_id: Any = None,
 ) -> dict[str, Any]:
-    """Commit one basket atomically. Returns everything the receipt needs."""
+    """Commit one basket atomically. Returns everything the receipt needs.
+
+    Stage 15 discounts are computed INSIDE the write transaction from the
+    freshly resolved prices, so a repriced product can never produce a
+    mismatched discount. The sale stores subtotal, rate, amount and the
+    customer's name/ID as an immutable snapshot.
+    """
     permissions.require(actor, permissions.CAP_RECORD_SALE)
     products.ensure_schema(db_path)
     cart_lines = normalize_cart(cart)
     method = validate_payment_method(payment_method)
     tendered = validate_tendered(amount_tendered)
+    kind = discounts.normalize_discount_type(discount_type)
+    customer, id_number = discounts.validate_customer(
+        customer_name, customer_id, kind
+    )
     timestamp = database.local_timestamp()
 
     with database.transaction(db_path) as conn:
         # Re-resolve INSIDE the write transaction: a manager may have retired
         # or repriced a product between the preview and the confirm.
-        lines, total, shortages = _resolve_lines(conn, cart_lines)
+        lines, subtotal, shortages = _resolve_lines(conn, cart_lines)
         if shortages:
             raise ValueError("Not enough stock: " + "; ".join(shortages))
+        amounts = discounts.compute(subtotal, kind)
+        total = amounts["total_amount"]
         if tendered + EPSILON < total:
             raise ValueError(
                 "Amount tendered is less than the total. "
@@ -338,14 +364,19 @@ def confirm_sale(
             """
             INSERT INTO store_sales
                 (transaction_number, transaction_date, item_count,
-                 total_amount, currency_code, payment_method,
-                 amount_tendered, change_amount, status,
-                 stock_out_id, created_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 subtotal_amount, total_amount, currency_code, payment_method,
+                 amount_tendered, change_amount,
+                 discount_type, discount_rate, discount_amount,
+                 customer_name, customer_id,
+                 status, stock_out_id, created_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 number, timestamp, sum(int(line["quantity"]) for line in lines),
-                total, CURRENCY_CODE, method, tendered, change,
+                amounts["subtotal_amount"], total, CURRENCY_CODE, method,
+                tendered, change,
+                kind, amounts["discount_rate"], amounts["discount_amount"],
+                customer, id_number,
                 STATUS_COMPLETED, stock_out_id, created_by,
             ),
         )
@@ -377,7 +408,6 @@ def confirm_sale(
         "item_count": sum(int(line["quantity"]) for line in lines),
         "line_count": len(lines),
         "items": lines,
-        "total_amount": total,
         "currency_code": CURRENCY_CODE,
         "payment_method": method,
         "amount_tendered": tendered,
@@ -385,6 +415,10 @@ def confirm_sale(
         "status": STATUS_COMPLETED,
         "cashier": cashier,
         "stock_out_id": stock_out_id,
+        "discount_label": amounts["discount_label"],
+        "customer_name": customer,
+        "customer_id": id_number,
+        **amounts,
     }
 
 
@@ -452,8 +486,11 @@ def gross_sales(db_path: Any = None) -> float:
     products.ensure_schema(db_path)
     conn = database.get_connection(db_path)
     try:
+        # Gross = before any Senior/PWD discount. Legacy rows have
+        # subtotal_amount = 0, so fall back to their total_amount.
         row = conn.execute(
-            "SELECT COALESCE(SUM(total_amount), 0) FROM store_sales "
+            "SELECT COALESCE(SUM(COALESCE(NULLIF(subtotal_amount, 0), "
+            "total_amount)), 0) FROM store_sales "
             "WHERE status = 'completed'"
         ).fetchone()
         return _money(float(row[0]))

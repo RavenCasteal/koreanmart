@@ -1,0 +1,27 @@
+       NEIGHBORHOOD MART        
+        Foods  ·  Drinks        
+         Everyday needs         
+--------------------------------
+Txn no.         SM-20261113-0006
+Date/time    2026-11-13 14:41:57
+Cashier                  cashier
+--------------------------------
+Boy Bawang Garlic 50 g
+[4800010234560]
+1 x ₱18.00                ₱18.00
+Cloud 9 Classic Chocolate
+[4800005234565]
+1 x ₱12.00                ₱12.00
+Nova Cheddar 72 g
+[4800009234563]
+1 x ₱36.00                ₱36.00
+--------------------------------
+Subtotal                  ₱66.00
+TOTAL                     ₱66.00
+--------------------------------
+Payment                     Cash
+Tendered                 ₱100.00
+Change                    ₱34.00
+--------------------------------
+         Amounts in PHP         
+      Salamat, thank you!       

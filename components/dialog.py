@@ -61,7 +61,9 @@ class ModalDialog(ctk.CTkToplevel):
             text=subtitle,
             font=font(11),
             text_color=TEXT_MUTED,
-            wraplength=self._width - 60,
+            # card padx=24 + label padx=24 => usable width is _width - 96.
+            # A larger wraplength clipped long subtitles on the right edge.
+            wraplength=self._width - 96,
             justify="left",
             anchor="w",
         ).pack(anchor="w", padx=24, pady=(0, 18))
@@ -95,7 +97,7 @@ class ModalDialog(ctk.CTkToplevel):
             text="",
             font=font(11),
             text_color=DANGER,
-            wraplength=self._width - 60,
+            wraplength=self._width - 96,
             justify="left",
             anchor="w",
             height=height,

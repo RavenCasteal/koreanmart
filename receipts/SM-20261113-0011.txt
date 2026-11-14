@@ -1,0 +1,27 @@
+       NEIGHBORHOOD MART        
+        Foods  ·  Drinks        
+         Everyday needs         
+--------------------------------
+Txn no.         SM-20261113-0011
+Date/time    2026-11-13 18:25:03
+Cashier                  cashier
+--------------------------------
+Piattos Cheese 85 g
+[4800008234566]
+1 x ₱38.00                ₱38.00
+Chicken Siopao (ready to eat)
+[4800013234561]
+1 x ₱45.00                ₱45.00
+Century Tuna Flakes in Oil
+[4800088001234]
+1 x ₱62.00                ₱62.00
+--------------------------------
+Subtotal                 ₱145.00
+TOTAL                    ₱145.00
+--------------------------------
+Payment                     Cash
+Tendered                 ₱200.00
+Change                    ₱55.00
+--------------------------------
+         Amounts in PHP         
+      Salamat, thank you!       

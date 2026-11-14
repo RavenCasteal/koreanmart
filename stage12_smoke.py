@@ -311,8 +311,8 @@ try:
     # MANAGER - Products / barcode catalog
     # ==================================================================
     shell = build_shell(MANAGER)
-    check(len(shell.sidebar._buttons) == 11,
-          "manager sidebar shows all 11 navigation items")
+    check(len(shell.sidebar._buttons) == 12,
+          "manager sidebar shows all 12 navigation items")
     check("products" in shell.allowed_keys,
           "Products is a manager-only page")
     check(shell.active_key == "dashboard", "manager lands on the Dashboard")

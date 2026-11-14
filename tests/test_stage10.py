@@ -121,7 +121,7 @@ class PermissionsRulesTests(_SessionIsolation):
         self.assertEqual(
             permissions.allowed_pages(MANAGER), permissions.MANAGER_PAGES
         )
-        self.assertEqual(len(permissions.allowed_pages(MANAGER)), 11)
+        self.assertEqual(len(permissions.allowed_pages(MANAGER)), 12)
         self.assertEqual(
             permissions.allowed_pages(CASHIER), ("pos",)
         )
@@ -811,8 +811,8 @@ class UiWiringTests(_SessionIsolation):
             list(PAGES),
             [
                 "dashboard", "ingredients", "products", "menu", "recipe",
-                "calculator", "pos", "inventory", "history", "monitoring",
-                "users",
+                "calculator", "pos", "reports", "inventory", "history",
+                "monitoring", "users",
             ],
         )
         self.assertEqual(PAGES["users"]["label"], "Users")
@@ -831,7 +831,7 @@ class UiWiringTests(_SessionIsolation):
         source = _source("main.py")
         self.assertIn("permissions.clear_session()", source)
         self.assertIn("permissions.set_session(user)", source)
-        self.assertIn("11 pages", source)
+        self.assertIn("12 pages", source)
 
     def test_header_shows_the_signed_in_role(self) -> None:
         source = _source("components/header.py")

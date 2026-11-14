@@ -901,7 +901,7 @@ class UiWiringTests(_TempDB):
         self.assertTrue(callable(PAGES["menu"]["view"].refresh))
 
     def test_main_entry_point_documents_ten_pages(self) -> None:
-        self.assertIn("11 pages", _source("main.py"))
+        self.assertIn("12 pages", _source("main.py"))
 
     def test_menu_page_has_a_denied_state(self) -> None:
         source = _source("pages/menu.py")

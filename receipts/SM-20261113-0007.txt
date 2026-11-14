@@ -1,0 +1,27 @@
+       NEIGHBORHOOD MART        
+        Foods  ·  Drinks        
+         Everyday needs         
+--------------------------------
+Txn no.         SM-20261113-0007
+Date/time    2026-11-13 14:43:02
+Cashier                  cashier
+--------------------------------
+Choc Nut 8s
+[4800006234562]
+1 x ₱32.00                ₱32.00
+Nova Cheddar 72 g
+[4800009234563]
+1 x ₱36.00                ₱36.00
+Milo Ready-to-Drink 200 ml
+[4800004234568]
+1 x ₱28.00                ₱28.00
+--------------------------------
+Subtotal                  ₱96.00
+TOTAL                     ₱96.00
+--------------------------------
+Payment                     Cash
+Tendered                 ₱100.00
+Change                     ₱4.00
+--------------------------------
+         Amounts in PHP         
+      Salamat, thank you!       

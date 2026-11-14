@@ -18,6 +18,10 @@ Stage 12: the live "pos" entry now points at the barcode / basket Point of
 Sale, and a manager-only "products" page holds the scan-to-sell catalog. The
 older ramen screens stay registered as legacy tools so their data and tests
 remain intact until they are retired in a later stage.
+
+Stage 13: a twelfth, manager-only "reports" page sits next to POS. Because
+the sidebar is built from PAGES filtered by the role, a cashier never sees
+it, and navigate() refuses the key if anything tries to open it directly.
 """
 
 from __future__ import annotations
@@ -41,6 +45,7 @@ from pages.menu import MenuView
 from pages.monitoring import MonitoringView
 from pages.products import ProductsView
 from pages.recipe import RecipeView
+from pages.reports import ReportsView
 from pages.store_pos import PosView
 from pages.users import UsersView
 
@@ -87,6 +92,12 @@ PAGES: dict[str, dict[str, Any]] = {
         "title": "Point of sale",
         "subtitle": "Scan barcodes, build a basket, deduct stock and print a PHP receipt",
         "view": PosView,
+    },
+    "reports": {
+        "label": "Sales Reports",
+        "title": "Sales reports & Z-read",
+        "subtitle": "Daily totals, payment mix, top products and CSV export - manager only",
+        "view": ReportsView,
     },
     "inventory": {
         "label": "Inventory",

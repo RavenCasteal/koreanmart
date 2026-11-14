@@ -1,0 +1,30 @@
+       NEIGHBORHOOD MART        
+        Foods  ·  Drinks        
+         Everyday needs         
+--------------------------------
+Txn no.         SM-20261113-0008
+Date/time    2026-11-13 14:44:28
+Cashier                  cashier
+--------------------------------
+Boy Bawang Garlic 50 g
+[4800010234560]
+3 x ₱18.00                ₱54.00
+Nescafe 3in1 Original
+[4800003234561]
+1 x ₱12.00                ₱12.00
+Lucky Me! Chicken Noodles
+[4800016301023]
+1 x ₱15.00                ₱15.00
+Pork Siomai 6 pcs
+[4800014234568]
+1 x ₱55.00                ₱55.00
+--------------------------------
+Subtotal                 ₱136.00
+TOTAL                    ₱136.00
+--------------------------------
+Payment                     Cash
+Tendered                 ₱200.00
+Change                    ₱64.00
+--------------------------------
+         Amounts in PHP         
+      Salamat, thank you!       

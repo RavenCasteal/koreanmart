@@ -276,13 +276,13 @@ class Stage8SourceHygieneTests(unittest.TestCase):
         self.assertIn('on_navigate("monitoring")', text)
         self.assertIn("from formatting import format_quantity", text)
 
-    def test_all_ten_pages_are_registered_and_refreshable(self) -> None:
+    def test_all_twelve_pages_are_registered_and_refreshable(self) -> None:
         self.assertEqual(
             list(PAGES),
             [
                 "dashboard", "ingredients", "products", "menu", "recipe",
-                "calculator", "pos", "inventory", "history", "monitoring",
-                "users",
+                "calculator", "pos", "reports", "inventory", "history",
+                "monitoring", "users",
             ],
         )
         for key, meta in PAGES.items():

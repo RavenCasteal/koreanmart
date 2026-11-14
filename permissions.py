@@ -5,10 +5,10 @@ This is the SINGLE source of truth for who may see or do what. Keeping it in
 one dependency-free module means the shell, the pages and the repositories
 all agree, and the rules are easy to unit-test without a database.
 
-Two roles only, deliberately simple for a one-counter ramen shop:
+Two roles only, deliberately simple for one shared counter PC:
 
-    manager - sees every screen, manages ingredients, menu dishes, recipe
-             (BOM), stock, price, voids and user accounts.
+    manager - sees all 12 screens, manages products, prices, stock, voids,
+             user accounts and (Stage 13) sales reports / Z-read.
     cashier - sees ONLY the Point of Sale screen; may record a sale and
              (re)print a receipt. Nothing else.
 
@@ -47,6 +47,7 @@ MANAGER_PAGES: tuple[str, ...] = (
     "recipe",
     "calculator",
     "pos",
+    "reports",
     "inventory",
     "history",
     "monitoring",
@@ -72,6 +73,8 @@ CAP_MANAGE_USERS = "manage_users"
 CAP_MANAGE_MENU = "manage_menu"
 # Stage 12: the barcoded convenience-store product catalog.
 CAP_MANAGE_PRODUCTS = "manage_products"
+# Stage 13: sales reports, daily Z-read and CSV export (money totals).
+CAP_VIEW_REPORTS = "view_reports"
 
 CASHIER_CAPABILITIES: frozenset[str] = frozenset(
     {CAP_RECORD_SALE, CAP_PRINT_RECEIPT}
@@ -88,6 +91,7 @@ ALL_CAPABILITIES: frozenset[str] = frozenset(
         CAP_MANAGE_USERS,
         CAP_MANAGE_MENU,
         CAP_MANAGE_PRODUCTS,
+        CAP_VIEW_REPORTS,
     }
 )
 
@@ -102,6 +106,7 @@ CAPABILITY_LABELS: dict[str, str] = {
     CAP_MANAGE_USERS: "manage user accounts",
     CAP_MANAGE_MENU: "manage menu dishes",
     CAP_MANAGE_PRODUCTS: "manage products and barcodes",
+    CAP_VIEW_REPORTS: "view sales reports",
 }
 
 

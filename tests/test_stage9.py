@@ -1034,11 +1034,18 @@ class Stage9ReceiptTests(unittest.TestCase):
             self.assertIn("PHP", issued["text"])
 
     def test_printer_failure_is_reported_and_never_raises(self) -> None:
-        with patch.object(receipt.os, "startfile",
-                          side_effect=OSError("no printer"), create=True):
-            result = receipt.print_receipt(
-                "sample", path=ROOT / "receipts" / "sample.txt"
-            )
+        # Stage 17 changed the default to silent archive-only, so pin BOTH the
+        # mode and a real paper printer name to exercise the original Stage 9
+        # Windows default-printer failure path this test verifies.
+        config = dict(receipt.DEFAULT_PRINTER_CONFIG, mode="default")
+        with patch.object(receipt, "load_printer_config", return_value=config), \
+                patch.object(receipt, "default_printer_name",
+                             return_value="Counter 58mm"):
+            with patch.object(receipt.os, "startfile",
+                              side_effect=OSError("no printer"), create=True):
+                result = receipt.print_receipt(
+                    "sample", path=ROOT / "receipts" / "sample.txt"
+                )
         self.assertFalse(result["ok"])
         self.assertIn("archived", result["detail"])
 
@@ -1048,16 +1055,24 @@ class Stage9ReceiptIntegrationTests(_TempDB):
     def test_printer_failure_never_rolls_back_a_committed_sale(self) -> None:
         self._stock(3)
         result = self._sale(1, "Cash", 200)
-        with tempfile.TemporaryDirectory() as folder:
-            with patch.object(receipt.os, "startfile",
-                              side_effect=OSError("printer offline"),
-                              create=True):
-                issued = receipt.issue_receipt(
-                    result, base_dir=folder
-                )
-            self.assertFalse(issued["print"]["ok"])
-            self.assertTrue(issued["path"].exists())
-            self.assertIn(result["transaction_number"], issued["text"])
+        # Stage 17: force the original Windows-printer path with a REAL paper
+        # printer, so this legacy "printer failure cannot undo a sale" check
+        # still runs instead of taking the silent archive-only default.
+        config = dict(receipt.DEFAULT_PRINTER_CONFIG, mode="default")
+        with patch.object(receipt, "default_printer_name",
+                          return_value="Counter 58mm"):
+            with tempfile.TemporaryDirectory() as folder:
+                with patch.object(receipt, "load_printer_config",
+                                  return_value=config):
+                    with patch.object(receipt.os, "startfile",
+                                      side_effect=OSError("printer offline"),
+                                      create=True):
+                        issued = receipt.issue_receipt(
+                            result, base_dir=folder
+                        )
+                self.assertFalse(issued["print"]["ok"])
+                self.assertTrue(issued["path"].exists())
+                self.assertIn(result["transaction_number"], issued["text"])
         detail = sales.get_sale_detail(result["sale_id"], self.db_path)
         self.assertEqual(detail["status"], "completed")
         self.assertEqual(self._counts()["sales_transactions"], 1)
@@ -1090,18 +1105,23 @@ class Stage9ShellTests(unittest.TestCase):
         self.assertTrue(meta["subtitle"])
         self.assertEqual(meta["view"].__name__, "PosView")
         self.assertTrue(callable(meta["view"].refresh))
-        self.assertEqual(len(PAGES), 11)
+        self.assertEqual(len(PAGES), 12)
 
-    def test_main_entry_point_documents_the_ten_pages(self) -> None:
+    def test_main_entry_point_documents_the_twelve_pages(self) -> None:
         source = _source("main.py")
-        self.assertIn("11 pages", source)
+        self.assertIn("12 pages", source)
         self.assertIn("Point of Sale", source)
 
     def test_stage9_adds_no_mandatory_third_party_dependency(self) -> None:
+        """pywin32 is an OPTIONAL Windows-only printer extra (Stage 14)."""
         requirements = _source("requirements.txt").lower()
         self.assertIn("customtkinter", requirements)
         self.assertIn("pillow", requirements)
-        self.assertNotIn("pywin32", requirements)
+        # The ESC/POS printer driver must stay optional and Windows-scoped,
+        # so the app still starts with only the original two dependencies.
+        for line in requirements.splitlines():
+            if line.strip().startswith("pywin32"):
+                self.assertIn('sys_platform == "win32"', line)
 
 
 class Stage9RealDatabaseTests(unittest.TestCase):

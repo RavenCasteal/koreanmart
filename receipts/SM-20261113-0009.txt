@@ -1,0 +1,27 @@
+       NEIGHBORHOOD MART        
+        Foods  ·  Drinks        
+         Everyday needs         
+--------------------------------
+Txn no.         SM-20261113-0009
+Date/time    2026-11-13 14:45:40
+Cashier                  cashier
+--------------------------------
+Century Tuna Flakes in Oil
+[4800088001234]
+3 x ₱62.00               ₱186.00
+Lucky Me! Pancit Canton Original
+[4800016301016]
+1 x ₱18.00                ₱18.00
+Piattos Cheese 85 g
+[4800008234566]
+1 x ₱38.00                ₱38.00
+--------------------------------
+Subtotal                 ₱242.00
+TOTAL                    ₱242.00
+--------------------------------
+Payment                     Cash
+Tendered                 ₱500.00
+Change                   ₱258.00
+--------------------------------
+         Amounts in PHP         
+      Salamat, thank you!       

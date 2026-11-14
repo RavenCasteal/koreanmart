@@ -6,14 +6,15 @@ Run with:  .venv\\Scripts\\python.exe main.py
        or: double-click run_debug.bat    (console visible, for debugging)
 
 Flow: initialize SQLite -> Stage 12 product/barcode bootstrap -> login ->
-      (first-run password change) -> main shell (sidebar + header + 11 pages,
+      (first-run password change) -> main shell (sidebar + header + 12 pages,
       including the barcode Point of Sale) -> logout back to login.
 
-Stage 10: the signed-in role filters the sidebar. A manager sees all 11
+Stage 10: the signed-in role filters the sidebar. A manager sees all 12
 pages; a cashier sees only Point of Sale and lands there directly.
 Stage 11a adds the manager-only Menu page and per-dish recipes (retained as
 legacy tools). Stage 12 adds the Products / barcode catalog and replaces the
-live POS with a scan-to-ring-up basket; all money stays Philippine peso.
+live POS with a scan-to-ring-up basket. Stage 13 adds the manager-only Sales
+Reports / Z-read page; all money stays Philippine peso.
 
 The App class only swaps between two top-level views (LoginView and
 AppShell). Page navigation inside the shell is handled by components/shell.py.

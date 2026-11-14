@@ -13,5 +13,15 @@
 customtkinter>=5.2.2,<6
 Pillow>=11.0.0,<12
 
+# Stage 14 - optional Windows hardware support:
+#   win32print is used ONLY for direct RAW ESC/POS printing to a USB thermal
+#   receipt printer. The application still runs without it: receipts are
+#   archived and can be printed through the Windows default printer.
+#   Install once inside the project folder:
+#       .venv\Scripts\python.exe -m pip install -r requirements.txt
+#   or, for the printer support alone:
+#       .venv\Scripts\python.exe -m pip install pywin32
+pywin32>=306,<400; sys_platform == "win32"
+
 # Note: customtkinter installs "darkdetect" and "packaging" automatically
 # as its own dependencies. They do not need to be listed here.

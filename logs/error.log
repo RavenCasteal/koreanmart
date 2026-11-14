@@ -35,3 +35,23 @@ Traceback (most recent call last):
     def __call__(self, *args):
     
 KeyboardInterrupt
+
+======================================================================
+2026-11-13 14:40:42  Unhandled error
+Traceback (most recent call last):
+  File "C:\Users\diazp\WorkBuddy AI\2026-11-08-17-46-19\RamenInventorySystem\main.py", line 228, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "C:\Users\diazp\WorkBuddy AI\2026-11-08-17-46-19\RamenInventorySystem\main.py", line 215, in main
+    app.mainloop()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\diazp\WorkBuddy AI\2026-11-08-17-46-19\RamenInventorySystem\.venv\Lib\site-packages\customtkinter\windows\ctk_tk.py", line 165, in mainloop
+    super().mainloop(*args, **kwargs)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\diazp\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 1611, in mainloop
+    self.tk.mainloop(n)
+    ~~~~~~~~~~~~~~~~^^^
+  File "C:\Users\diazp\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 2095, in __call__
+    def __call__(self, *args):
+    
+KeyboardInterrupt

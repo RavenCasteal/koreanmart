@@ -1,0 +1,21 @@
+       NEIGHBORHOOD MART        
+        Foods  ·  Drinks        
+         Everyday needs         
+--------------------------------
+Txn no.         SM-20261113-0012
+Date/time    2026-11-13 18:28:06
+Cashier                  cashier
+--------------------------------
+Gardenia Classic White Bread
+[4801234560017]
+1 x ₱65.00                ₱65.00
+--------------------------------
+Subtotal                  ₱65.00
+TOTAL                     ₱65.00
+--------------------------------
+Payment                     Cash
+Tendered                 ₱100.00
+Change                    ₱35.00
+--------------------------------
+         Amounts in PHP         
+      Salamat, thank you!       

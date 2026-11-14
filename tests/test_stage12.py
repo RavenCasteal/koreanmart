@@ -667,13 +667,14 @@ class ReceiptAndWiringTests(_Stage12Case):
         source = _source("main.py")
         self.assertIn("products.ensure_schema()", source)
         self.assertIn("products.bootstrap_catalog()", source)
-        self.assertIn("11 pages", source)
+        self.assertIn("12 pages", source)
 
     def test_no_new_third_party_dependency_for_barcodes(self) -> None:
+        """Scanning stays keyboard-wedge only; pywin32 is for the PRINTER."""
         requirements = _source("requirements.txt").lower()
         self.assertIn("customtkinter", requirements)
         self.assertIn("pillow", requirements)
-        for library in ("python-barcode", "zxing", "opencv", "pyzbar", "pywin32"):
+        for library in ("python-barcode", "zxing", "opencv", "pyzbar"):
             self.assertNotIn(library, requirements)
 
     def test_new_modules_use_only_the_peso_sign(self) -> None:
@@ -689,7 +690,9 @@ class ReceiptAndWiringTests(_Stage12Case):
     def test_checkout_card_is_not_squeezed_into_a_side_column(self) -> None:
         """A side-by-side split made the payment panel 1px wide at 1160x720."""
         source = _source("pages/store_pos.py")
-        self.assertIn('panel.pack(fill="x", pady=(14, 0))', source)
+        # Stage 17 tightened the vertical gap from 14 to 4px; the card is
+        # STILL packed full-width (never a squeezed side column).
+        self.assertIn('panel.pack(fill="x", pady=(4, 0))', source)
         self.assertIn('uniform="checkout"', source)
         self.assertNotIn('panel.pack(side="right", fill="y")', source)
 
