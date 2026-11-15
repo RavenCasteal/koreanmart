@@ -38,6 +38,7 @@ import sqlite3
 from datetime import date, timedelta
 from typing import Any, Iterable
 
+import batches
 import database
 import permissions
 
@@ -46,6 +47,9 @@ CATALOG_VERSION = "12"
 # Stage 15 adds discount columns to store_sales. This is an app_meta marker,
 # NOT a PRAGMA user_version bump: database.py / schema.sql stay at v4.
 STAGE15_VERSION = "15"
+# Stage 18 adds the batch/supplier ledger, database-level discount guards and
+# the opening-batch backfill. Still an app_meta marker, still v4.
+STAGE18_VERSION = batches.STAGE18_VERSION
 
 CATEGORIES: tuple[str, ...] = (
     "Ready-to-eat",
@@ -148,6 +152,61 @@ _INDEX_DDL: tuple[str, ...] = (
     "WHERE is_active = 1 AND barcode <> ''",
     "CREATE INDEX IF NOT EXISTS ix_ingredients_category "
     "ON ingredients (category)",
+)
+
+# ----------------------------------------------------------------------
+# Stage 18 - database-level guards for the Stage 15 discount columns.
+#
+# SQLite cannot ADD a CHECK constraint with ALTER TABLE, and rebuilding
+# store_sales would violate the "preserve old sales / additive migration"
+# rule (its child table store_sale_items has a FK to it). Triggers are the
+# additive way to enforce the same rules at the DATABASE level:
+#   * discount_type is one of the canonical codes used by discounts.py
+#   * rate is 0..1, zero for a plain sale, positive for a discount
+#   * discount_amount is non-negative and never exceeds the subtotal
+#   * customer name/ID exist ONLY on a discounted sale, and a discounted sale
+#     must have both (privacy: no stray IDs on unrelated sales)
+# Existing rows are NEVER updated or validated away - they are simply left
+# alone. The UPDATE trigger only fires when a discount column actually
+# changes, so voiding an old sale (status/void fields) always still works.
+# discount_constraint_anomalies() reports any pre-existing outliers.
+# ----------------------------------------------------------------------
+_DISCOUNT_INVALID = """
+    NEW.discount_type NOT IN ('', 'senior', 'pwd')
+    OR NEW.discount_rate < 0 OR NEW.discount_rate > 1
+    OR (NEW.discount_type = '' AND NEW.discount_rate <> 0)
+    OR (NEW.discount_type <> '' AND NEW.discount_rate <= 0)
+    OR NEW.discount_amount < 0
+    OR NEW.discount_amount > NEW.subtotal_amount + 0.000001
+    OR (NEW.discount_type <> ''
+        AND (length(trim(NEW.customer_name)) < 2
+             OR length(trim(NEW.customer_id)) < 3))
+    OR (NEW.discount_type = ''
+        AND (trim(NEW.customer_name) <> ''
+             OR trim(NEW.customer_id) <> ''))
+"""
+
+_STAGE18_SALES_TRIGGERS: tuple[str, ...] = (
+    f"""
+    CREATE TRIGGER IF NOT EXISTS trg_store_sales_discount_insert
+    BEFORE INSERT ON store_sales FOR EACH ROW
+    WHEN ({_DISCOUNT_INVALID})
+    BEGIN SELECT RAISE(ABORT, 'Invalid Senior/PWD discount data.'); END
+    """,
+    f"""
+    CREATE TRIGGER IF NOT EXISTS trg_store_sales_discount_update
+    BEFORE UPDATE ON store_sales FOR EACH ROW
+    WHEN (
+        (NEW.discount_type IS NOT OLD.discount_type
+         OR NEW.discount_rate IS NOT OLD.discount_rate
+         OR NEW.discount_amount IS NOT OLD.discount_amount
+         OR NEW.subtotal_amount IS NOT OLD.subtotal_amount
+         OR NEW.customer_name IS NOT OLD.customer_name
+         OR NEW.customer_id IS NOT OLD.customer_id)
+        AND ({_DISCOUNT_INVALID})
+    )
+    BEGIN SELECT RAISE(ABORT, 'Invalid Senior/PWD discount data.'); END
+    """,
 )
 
 # (barcode, name, category, unit, price, opening stock, minimum, expiry days)
@@ -300,14 +359,52 @@ def ensure_schema(db_path: Any = None) -> dict[str, Any]:
                 added_sale_columns.append(name)
         for statement in _INDEX_DDL:
             conn.execute(statement)
+        # Stage 18: additive batch/supplier tables, discount guards and the
+        # one-time opening-batch backfill. All inside the SAME transaction,
+        # so a failure rolls the whole migration back together.
+        stage18_columns = batches.ensure_schema(conn)
+        for statement in _STAGE18_SALES_TRIGGERS:
+            conn.execute(statement)
+        opening_batches = batches.backfill_unbatched(conn)
         _set_meta(conn, "stage12_schema", CATALOG_VERSION)
         _set_meta(conn, "stage15_schema", STAGE15_VERSION)
+        _set_meta(conn, "stage18_schema", STAGE18_VERSION)
     return {
         "added_columns": added,
         "added_sale_columns": added_sale_columns,
         "version": CATALOG_VERSION,
         "stage15_version": STAGE15_VERSION,
+        "stage18_version": STAGE18_VERSION,
+        "stage18_columns": stage18_columns,
+        "opening_batches": opening_batches,
     }
+
+
+def discount_constraint_anomalies(db_path: Any = None) -> list[dict[str, Any]]:
+    """Report existing sales that would not pass the new discount guards.
+
+    Read-only and deliberately NON-REPAIRING: old sales and old receipts are
+    preserved exactly as they are. A manager can review this list before
+    deciding what to do; no retention or cleanup policy is invented here.
+    """
+    conn = database.get_connection(db_path)
+    try:
+        return _rows(conn.execute(
+            """
+            SELECT sale_id, transaction_number, discount_type, discount_rate,
+                   subtotal_amount, discount_amount
+            FROM store_sales
+            WHERE discount_type NOT IN ('', 'senior', 'pwd')
+               OR discount_rate < 0 OR discount_rate > 1
+               OR discount_amount < 0
+               OR discount_amount > subtotal_amount + 0.000001
+            ORDER BY sale_id
+            """
+        ))
+    except sqlite3.Error:
+        return []
+    finally:
+        conn.close()
 
 
 def catalog_ready(db_path: Any = None) -> bool:
@@ -404,6 +501,32 @@ def bootstrap_catalog(db_path: Any = None) -> dict[str, Any]:
                  "Opening balance"),
             )
 
+        # Stage 18: each seeded opening balance becomes ONE opening batch.
+        # The seed's expiry date is known data, but the unit cost and supplier
+        # are NOT invented - they stay NULL (unknown).
+        for row in conn.execute(
+            "SELECT ingredient_id, quantity, expiration_date, stock_in_detail_id "
+            "FROM stock_in_details WHERE stock_in_id = ?",
+            (stock_in_id,),
+        ).fetchall():
+            batch_id = batches.create_batch(
+                conn,
+                ingredient_id=int(row[0]),
+                quantity=float(row[1]),
+                expiration_date=row[2],
+                unit_cost=None,
+                supplier_id=None,
+                stock_in_detail_id=int(row[3]),
+                received_at=timestamp,
+                is_opening=True,
+                notes=batches.OPENING_NOTE,
+            )
+            conn.execute(
+                "UPDATE stock_in_details SET batch_id = ? "
+                "WHERE stock_in_detail_id = ?",
+                (batch_id, int(row[3])),
+            )
+        batches.backfill_unbatched(conn)
         _set_meta(conn, "catalog_seeded", "1")
     return {
         "seeded": True,
@@ -611,7 +734,7 @@ def add_product(
                 """,
                 (timestamp, "OPENING", f"Opening balance for {clean_name}"),
             )
-            conn.execute(
+            detail = conn.execute(
                 """
                 INSERT INTO stock_in_details
                     (stock_in_id, ingredient_id, quantity, unit,
@@ -623,6 +746,24 @@ def add_product(
                     clean_unit, expiry, "Opening balance",
                 ),
             )
+            batch_id = batches.create_batch(
+                conn,
+                ingredient_id=product_id,
+                quantity=float(opening),
+                expiration_date=expiry,
+                unit_cost=None,
+                supplier_id=None,
+                stock_in_detail_id=int(detail.lastrowid),
+                received_at=timestamp,
+                is_opening=True,
+                notes=batches.OPENING_NOTE,
+            )
+            conn.execute(
+                "UPDATE stock_in_details SET batch_id = ? "
+                "WHERE stock_in_detail_id = ?",
+                (batch_id, int(detail.lastrowid)),
+            )
+        batches.backfill_unbatched(conn)
     return product_id
 
 
@@ -638,7 +779,12 @@ def update_product(
     db_path: Any = None,
     actor: Any = None,
 ) -> dict[str, Any]:
-    """Edit catalog fields only. NEVER changes quantity_on_hand."""
+    """Edit catalog fields only. NEVER changes quantity_on_hand.
+
+    Stage 18: deliberately does NOT touch stock_batches or
+    stock_batch_allocations. Changing a retail price or a product name must
+    never rewrite a received batch's purchase cost or a COGS snapshot.
+    """
     permissions.require(actor, permissions.CAP_MANAGE_PRODUCTS)
     ensure_schema(db_path)
     product_id = int(ingredient_id)

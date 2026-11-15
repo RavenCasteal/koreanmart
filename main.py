@@ -15,6 +15,9 @@ Stage 11a adds the manager-only Menu page and per-dish recipes (retained as
 legacy tools). Stage 12 adds the Products / barcode catalog and replaces the
 live POS with a scan-to-ring-up basket. Stage 13 adds the manager-only Sales
 Reports / Z-read page; all money stays Philippine peso.
+Stage 18: the launch-time additive schema check also applies the batch /
+supplier / discount-guard migration inside the same transaction (still v4).
+See docs/stage18_decisions.md for the owner decisions that remain open.
 
 The App class only swaps between two top-level views (LoginView and
 AppShell). Page navigation inside the shell is handled by components/shell.py.

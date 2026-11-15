@@ -1032,7 +1032,11 @@ class DiscountReportingTests(_Stage15Case):
         self.assertEqual(row["discount_type"], discounts.PWD)
         self.assertEqual(row["discount_label"], "PWD")
         self.assertEqual(row["customer_name"], NAME)
-        self.assertEqual(row["customer_id"], ID_NUMBER)
+        # Stage 18: report rows carry only a yes/no flag. The ID number stays
+        # on the sale row and the printed receipt, never in reports/exports.
+        self.assertTrue(row["id_on_file"])
+        self.assertNotIn("customer_id", row)
+        self.assertNotIn(ID_NUMBER, repr(row))
 
     def test_legacy_sale_row_falls_back_to_total_as_subtotal(self) -> None:
         conn = self._connect()
@@ -1089,14 +1093,16 @@ class DiscountReportingTests(_Stage15Case):
         ])
         self.assertEqual(rows[0][8:], [
             f"Subtotal ({CURRENCY_CODE})", "Discount type",
-            f"Discount ({CURRENCY_CODE})", "Customer name", "ID number",
+            f"Discount ({CURRENCY_CODE})", "Customer name", "ID on file",
         ])
         self.assertEqual(rows[1][4], f"{NET:.2f}")
         self.assertEqual(rows[1][8], f"{SUBTOTAL:.2f}")
         self.assertEqual(rows[1][9], "Senior Citizen")
         self.assertEqual(rows[1][10], f"{DISCOUNT:.2f}")
         self.assertEqual(rows[1][11], NAME)
-        self.assertEqual(rows[1][12], ID_NUMBER)
+        # Stage 18: the ID number itself stays OFF the report/export.
+        self.assertEqual(rows[1][12], "Yes")
+        self.assertNotIn(ID_NUMBER, "\n".join(",".join(r) for r in rows))
 
     def test_csv_labels_a_plain_sale_as_no_discount(self) -> None:
         self._sale()

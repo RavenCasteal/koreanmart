@@ -18,6 +18,12 @@ What it deliberately does NOT do:
     only reports what is needed; it never writes to the database.
 
 All SQL lives in stock_repository.py; this file only builds the interface.
+
+Stage 18: the stock-in form also accepts an OPTIONAL supplier and an OPTIONAL
+unit purchase cost per delivery line. Both are snapshots on the received batch;
+editing a product's retail price later never rewrites them. A manager-only
+"Database tools" button opens the batch ledger, reconciliation check and the
+SQLite backup/restore workflow.
 """
 
 from __future__ import annotations
@@ -27,8 +33,11 @@ from typing import Any, Callable
 
 import customtkinter as ctk
 
+import batches
+import permissions
 import stock_repository as stock
 from components.dialog import ModalDialog
+from pages.database_tools import DatabaseToolsDialog
 from components.theme import (
     ACCENT,
     ACCENT_HOVER,
@@ -52,6 +61,8 @@ BALANCE_MINSIZES = (170, 60, 110, 100, 108, 158)
 BALANCE_TITLES = (
     "Ingredient", "Unit", "On hand", "Minimum", "Status", "Actions"
 )
+
+NO_SUPPLIER = "- No supplier -"
 
 RECENT_WEIGHTS = (2, 1, 2, 2, 2)
 RECENT_MINSIZES = (160, 60, 150, 110, 130)
@@ -134,6 +145,20 @@ class InventoryView(ctk.CTkFrame):
             anchor="w",
         ).pack(anchor="w")
 
+        ctk.CTkButton(
+            top,
+            text="Database tools",
+            command=self._open_database_tools,
+            width=130,
+            height=38,
+            corner_radius=9,
+            fg_color=PANEL,
+            hover_color="#F0E9DD",
+            border_width=1,
+            border_color=BORDER,
+            text_color=TEXT_MUTED,
+            font=font(11, "bold"),
+        ).pack(side="right", padx=(8, 0))
         ctk.CTkButton(
             top,
             text="+  Stock in",
@@ -609,6 +634,16 @@ class InventoryView(ctk.CTkFrame):
             preselect_id=preselect_id,
         )
 
+    def _open_database_tools(self) -> None:
+        """Manager-only batch ledger, reconciliation and backup/restore."""
+        self._set_message("")
+        if not permissions.can(self.user, permissions.CAP_MANAGE_BATCHES):
+            self._set_message(
+                "Only a manager can open the database tools.", ok=False
+            )
+            return
+        self.dialog = DatabaseToolsDialog(self, on_done=self.refresh)
+
 
 # ----------------------------------------------------------------------
 # Multi-line transaction dialogs
@@ -628,6 +663,8 @@ class TransactionDialog(ModalDialog):
     SUBTITLE = "One transaction may contain several ingredient lines."
     SAVE_TEXT = "Save transaction"
     WITH_EXPIRY = False
+    # Stage 18: only stock-in deliveries carry a purchase cost / supplier.
+    WITH_COST = False
 
     def __init__(
         self,
@@ -806,7 +843,10 @@ class TransactionDialog(ModalDialog):
         combo = ctk.CTkComboBox(
             frame,
             values=self.label_list,
-            width=330,
+            # Stage 18: a delivery line has two extra fields. The stock-in
+            # dialog is wider (see StockInDialog.WIDTH) so the product picker,
+            # qty, expiry, cost and remove button all fit without clipping.
+            width=280 if self.WITH_COST else 330,
             height=34,
             corner_radius=8,
             fg_color=CARD,
@@ -848,11 +888,31 @@ class TransactionDialog(ModalDialog):
             )
             expiry.pack(side="left", padx=4)
 
+        # Stage 18: optional unit purchase cost. Blank means UNKNOWN (NULL),
+        # which is deliberately different from a zero cost. It is stored on
+        # the received batch, never derived from the retail price.
+        cost = None
+        if self.WITH_COST:
+            cost = ctk.CTkEntry(
+                frame,
+                width=88,
+                height=34,
+                corner_radius=8,
+                placeholder_text="Cost/unit",
+                fg_color=CARD,
+                border_width=1,
+                border_color=BORDER,
+                text_color=TEXT,
+                font=font(12),
+            )
+            cost.pack(side="left", padx=4)
+
         row: dict[str, Any] = {
             "frame": frame,
             "combo": combo,
             "quantity": quantity,
             "expiry": expiry,
+            "cost": cost,
         }
         remove = ctk.CTkButton(
             frame,
@@ -909,6 +969,9 @@ class TransactionDialog(ModalDialog):
                     "expiration_date": (
                         row["expiry"].get() if row["expiry"] is not None else ""
                     ),
+                    "unit_cost": (
+                        row["cost"].get() if row.get("cost") is not None else ""
+                    ),
                     "notes": "",
                 }
             )
@@ -929,25 +992,62 @@ class TransactionDialog(ModalDialog):
 
 
 class StockInDialog(TransactionDialog):
-    """Delivery form: reference number, quantities and optional expiry dates."""
+    """Delivery form: reference, supplier, quantities, expiry and unit cost."""
 
     TITLE = "Record stock-in"
     HEADING = "Record a delivery"
     SUBTITLE = (
-        "Each line increases that ingredient's balance. All lines are saved "
-        "as one transaction in SQLite."
+        "Each line creates one received batch. Expiry and purchase cost are "
+        "optional - leave blank when unknown."
     )
     SAVE_TEXT = "Save stock-in"
     WITH_EXPIRY = True
+    WITH_COST = True
+    # Stage 18 adds a supplier picker and a Cost/unit field. Widen AND
+    # heighten the form so every line control (including the remove button)
+    # and the notes field stay visible above the fixed footer.
+    WIDTH = 820
+    HEIGHT = 700
 
     def _build_header_fields(self) -> None:
         self.reference_entry = self.field(
             "Reference number (optional, e.g. PO-1042)"
         )
+        ctk.CTkLabel(
+            self.card, text="Supplier (optional)",
+            font=font(12, "bold"), text_color=TEXT,
+        ).pack(anchor="w", padx=24, pady=(12, 4))
+        try:
+            suppliers = batches.list_suppliers()
+        except (sqlite3.Error, ValueError):
+            suppliers = []
+        self._supplier_ids: dict[str, int | None] = {NO_SUPPLIER: None}
+        labels = [NO_SUPPLIER]
+        for item in suppliers:
+            label = f"{item['name']} (#{item['supplier_id']})"
+            self._supplier_ids[label] = int(item["supplier_id"])
+            labels.append(label)
+        self.supplier_combo = ctk.CTkComboBox(
+            self.card,
+            values=labels,
+            height=40,
+            corner_radius=10,
+            fg_color=PANEL,
+            border_width=1,
+            border_color=BORDER,
+            text_color=TEXT,
+            font=font(12),
+            dropdown_font=font(11),
+        )
+        self.supplier_combo.set(NO_SUPPLIER)
+        self.supplier_combo.pack(fill="x", padx=24)
 
     def _header_values(self) -> dict[str, Any]:
         values = super()._header_values()
         values["reference_no"] = self.reference_entry.get()
+        values["supplier_id"] = self._supplier_ids.get(
+            self.supplier_combo.get()
+        )
         return values
 
     def _submit(self, lines: list[dict[str, Any]], header: dict[str, Any]) -> dict:
@@ -956,6 +1056,7 @@ class StockInDialog(TransactionDialog):
             reference_no=header["reference_no"],
             notes=header["notes"],
             user_id=self.user_id,
+            supplier_id=header["supplier_id"],
         )
 
     def _success_message(self, result: dict[str, Any]) -> str:

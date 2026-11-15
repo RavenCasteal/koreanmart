@@ -562,11 +562,17 @@ try:
         check(len(discounted_row) == 1,
               "CSV contains exactly one Senior Citizen sale")
         if discounted_row:
+            # Stage 18: the ID number is no longer exported. Column 13 says
+            # only whether proof of eligibility is on file ("Yes" / "-").
             check(discounted_row[0][8] == "85.00"
                   and discounted_row[0][10] == "17.00"
                   and discounted_row[0][11] == NAME
-                  and discounted_row[0][12] == ID_NUMBER,
-                  "CSV row holds subtotal, discount, customer name and ID")
+                  and discounted_row[0][12] == "Yes",
+                  "CSV row holds subtotal, discount, name and ID-on-file flag")
+            check(rows[0][12] == "ID on file",
+                  "CSV 13th column header no longer asks for the ID number")
+            check(ID_NUMBER not in "\n".join(",".join(r) for r in rows),
+                  "CSV export never contains a Senior/PWD ID number")
         check(any(r[9] == "No discount" for r in rows[1:]),
               "plain sale is labelled No discount in the CSV")
     shot("stage15_07_reports_after_zread_export.png")

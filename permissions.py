@@ -75,6 +75,10 @@ CAP_MANAGE_MENU = "manage_menu"
 CAP_MANAGE_PRODUCTS = "manage_products"
 # Stage 13: sales reports, daily Z-read and CSV export (money totals).
 CAP_VIEW_REPORTS = "view_reports"
+# Stage 18: batch / supplier ledger and the SQLite backup workflow.
+# Both are manager-only: a cashier never sees cost or whole-database data.
+CAP_MANAGE_BATCHES = "manage_batches"
+CAP_MANAGE_BACKUPS = "manage_backups"
 
 CASHIER_CAPABILITIES: frozenset[str] = frozenset(
     {CAP_RECORD_SALE, CAP_PRINT_RECEIPT}
@@ -92,6 +96,8 @@ ALL_CAPABILITIES: frozenset[str] = frozenset(
         CAP_MANAGE_MENU,
         CAP_MANAGE_PRODUCTS,
         CAP_VIEW_REPORTS,
+        CAP_MANAGE_BATCHES,
+        CAP_MANAGE_BACKUPS,
     }
 )
 
@@ -107,6 +113,8 @@ CAPABILITY_LABELS: dict[str, str] = {
     CAP_MANAGE_MENU: "manage menu dishes",
     CAP_MANAGE_PRODUCTS: "manage products and barcodes",
     CAP_VIEW_REPORTS: "view sales reports",
+    CAP_MANAGE_BATCHES: "manage inventory batches and suppliers",
+    CAP_MANAGE_BACKUPS: "back up or restore the database",
 }
 
 

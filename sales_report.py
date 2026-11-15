@@ -33,6 +33,16 @@ Design rules:
     sales totals even if a widget is forced open.
   * All money is Philippine peso (PHP / peso sign), formatted only through
     formatting.format_money(). No taxes or payment fees exist.
+
+Stage 18 - customer ID privacy:
+    Full Senior/PWD ID numbers remain on the sale row and the printed receipt,
+    because those are the discount evidence. They are deliberately NOT read
+    into any report, Z-read, CSV export or the transactions list any more.
+    The 13th CSV column now says only whether an ID is on file ("Yes"/"-"),
+    preserving the established 13-column layout without exporting the number.
+    NO retention period, purging rule, pseudonymisation scheme or list of
+    authorised viewers has been invented - those are owner decisions recorded
+    in docs/stage18_decisions.md.
 """
 
 from __future__ import annotations
@@ -178,7 +188,10 @@ _DAY_SALES_SQL = """
            s.item_count, s.total_amount, s.payment_method, s.status,
            s.voided_at, s.void_reason,
            s.subtotal_amount, s.discount_type, s.discount_rate,
-           s.discount_amount, s.customer_name, s.customer_id,
+           s.discount_amount, s.customer_name,
+           -- Stage 18: derive a yes/no flag instead of exporting the ID.
+           CASE WHEN trim(COALESCE(s.customer_id, '')) <> '' THEN 1 ELSE 0 END
+               AS id_on_file,
            COALESCE(NULLIF(s.subtotal_amount, 0), s.total_amount)
                AS gross_amount,
            COALESCE(u.username, '-') AS cashier
@@ -328,7 +341,8 @@ def daily_summary(
             ),
             "discount_amount": _money(row.get("discount_amount") or 0.0),
             "customer_name": str(row.get("customer_name") or ""),
-            "customer_id": str(row.get("customer_id") or ""),
+            # No ID value, only the fact that the sale has one on file.
+            "id_on_file": bool(row.get("id_on_file")),
             "payment_method": str(row["payment_method"]),
             "status": str(row["status"]),
             "void_reason": str(row["void_reason"] or ""),
@@ -564,7 +578,7 @@ def export_transactions_csv(
                 # Stage 15 - keep the original eight columns in place so old
                 # spreadsheets still import; discount detail is appended.
                 f"Subtotal ({CURRENCY_CODE})", "Discount type",
-                f"Discount ({CURRENCY_CODE})", "Customer name", "ID number",
+                f"Discount ({CURRENCY_CODE})", "Customer name", "ID on file",
             ]
         )
         for row in summary["transactions"]:
@@ -584,7 +598,9 @@ def export_transactions_csv(
                     row["discount_label"] or "No discount",
                     f"{row['discount_amount']:.2f}",
                     row["customer_name"] or "-",
-                    row["customer_id"] or "-",
+                    # Stage 18: export only the fact that proof of eligibility
+                    # exists, never the Senior/PWD ID number itself.
+                    "Yes" if row["id_on_file"] else "-",
                 ]
             )
     return target

@@ -45,6 +45,7 @@ import sqlite3
 from contextlib import contextmanager
 from typing import Any, Iterator
 
+import batches
 import database
 import permissions
 import usage_repository as usage
@@ -613,6 +614,10 @@ def confirm_sale(
     timestamp = database.local_timestamp()
 
     with database.transaction(_resolve_path(db_path)) as conn:
+        # Stage 18: the legacy ramen POS is still regression-tested, so it
+        # must keep the batch ledger consistent too. Idempotent DDL +
+        # opening-batch backfill for balances written by older code.
+        batches.ensure_write_ready(conn)
         menu = _menu_item(conn, menu_item_id)
         dish_name = str(menu["name"])
         unit_price = _round_money(menu["unit_price"])
@@ -685,7 +690,7 @@ def confirm_sale(
         )
         stock_out_id = int(out_header.lastrowid)
         for line in deductions:
-            conn.execute(
+            detail = conn.execute(
                 """
                 INSERT INTO stock_out_details
                     (stock_out_id, ingredient_id, quantity, unit, notes)
@@ -698,6 +703,14 @@ def confirm_sale(
                     line["unit"],
                     f"POS sale {transaction_number}",
                 ),
+            )
+            # FEFO allocation inside the SAME atomic transaction. Legacy
+            # sales have no store_sales row, so sale_id stays NULL.
+            batches.allocate(
+                conn,
+                ingredient_id=int(line["ingredient_id"]),
+                quantity=line["quantity_deducted"],
+                stock_out_detail_id=int(detail.lastrowid),
             )
             conn.execute(
                 """
@@ -801,6 +814,8 @@ def void_sale(
     timestamp = database.local_timestamp()
 
     with database.transaction(_resolve_path(db_path)) as conn:
+        # Stage 18: keep the batch ledger consistent for legacy voids too.
+        batches.ensure_write_ready(conn)
         row = conn.execute(
             "SELECT * FROM sales_transactions WHERE sale_id = ?", (key,)
         ).fetchone()
@@ -891,6 +906,20 @@ def void_sale(
                     timestamp,
                     line["ingredient_id"],
                 ),
+            )
+
+        # Stage 18: restore the EXACT batches the legacy sale consumed.
+        if row["stock_out_id"] is not None:
+            batches.restore_stock_out(
+                conn,
+                stock_out_id=int(row["stock_out_id"]),
+                expected_lines=[
+                    {
+                        "ingredient_id": int(line["ingredient_id"]),
+                        "quantity": float(line["quantity_deducted"]),
+                    }
+                    for line in reversals
+                ],
             )
 
         conn.execute(

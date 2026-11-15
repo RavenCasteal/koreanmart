@@ -28,6 +28,7 @@ import sqlite3
 from datetime import datetime
 from typing import Any
 
+import batches
 import database
 import permissions
 import repository
@@ -135,6 +136,45 @@ def validate_expiry(value: Any) -> str | None:
     return parsed.isoformat()
 
 
+def validate_unit_cost(value: Any) -> float | None:
+    """Optional purchase cost per unit, in Philippine peso.
+
+    Stage 18: this is a SNAPSHOT on the received batch. Editing a product's
+    retail price later must never change it. Blank means UNKNOWN (NULL),
+    which is deliberately different from a zero cost.
+    """
+    text = str(value if value is not None else "").strip()
+    if not text:
+        return None
+    try:
+        number = float(text)
+    except ValueError:
+        raise ValueError("Unit purchase cost must be a number.") from None
+    if not math.isfinite(number) or number < 0:
+        raise ValueError("Unit purchase cost cannot be negative.")
+    if number > MAX_QUANTITY:
+        raise ValueError("Unit purchase cost is too large.")
+    return round(number, 2)
+
+
+def _resolve_supplier_id(conn: sqlite3.Connection, value: Any) -> int | None:
+    """Optional supplier FK on the stock-in header (Stage 18)."""
+    if value is None or str(value).strip() == "":
+        return None
+    try:
+        candidate = int(value)
+    except (TypeError, ValueError):
+        raise ValueError("Choose a valid supplier.") from None
+    row = conn.execute(
+        "SELECT supplier_id FROM suppliers WHERE supplier_id = ? "
+        "AND is_active = 1",
+        (candidate,),
+    ).fetchone()
+    if row is None:
+        raise ValueError("That supplier is no longer active.")
+    return int(row[0])
+
+
 def _validate_lines(lines: Any, *, with_expiry: bool) -> list[dict[str, Any]]:
     """Validate and normalise every detail line BEFORE opening a transaction."""
     if not isinstance(lines, (list, tuple)) or not lines:
@@ -175,12 +215,19 @@ def _validate_lines(lines: Any, *, with_expiry: bool) -> list[dict[str, Any]]:
             )
         except ValueError as exc:
             raise ValueError(f"Line {index}: {exc}") from exc
+        try:
+            unit_cost = (
+                validate_unit_cost(raw.get("unit_cost")) if with_expiry else None
+            )
+        except ValueError as exc:
+            raise ValueError(f"Line {index}: {exc}") from exc
 
         clean.append(
             {
                 "ingredient_id": ingredient_id,
                 "quantity": quantity,
                 "expiration_date": expiry,
+                "unit_cost": unit_cost,
                 "notes": line_notes,
             }
         )
@@ -436,13 +483,16 @@ def record_stock_in(
     user_id: Any = None,
     db_path: Any = None,
     actor: Any = None,
+    supplier_id: Any = None,
 ) -> dict[str, Any]:
     """Record a delivery: add stock, write the header + detail lines.
 
     When a line carries an expiry date the ingredient's single expiry field is
     set to the EARLIEST of its current value and the delivered date, so the
-    Monitoring screen stays conservative. Per-batch expiry tracking is a known
-    limitation (see the stage report).
+    Monitoring screen stays conservative. Stage 18 additionally creates ONE
+    stock_batches row per line with that delivery's expiry, optional unit
+    purchase cost and optional supplier, inside the SAME transaction. The
+    existing reference_no and notes are preserved exactly as before.
     """
     permissions.require(actor, permissions.CAP_MANAGE_STOCK)
     clean_lines = _validate_lines(lines, with_expiry=True)
@@ -451,29 +501,36 @@ def record_stock_in(
     timestamp = database.local_timestamp()
 
     with database.transaction(_resolve_path(db_path)) as conn:
+        # Idempotent DDL + opening-batch backfill for pre-Stage-18 databases.
+        batches.ensure_write_ready(conn)
         ingredients = [
             _ingredient_for_movement(conn, line["ingredient_id"])
             for line in clean_lines
         ]
         created_by = _resolve_user_id(conn, user_id)
+        resolved_supplier = _resolve_supplier_id(conn, supplier_id)
         cursor = conn.execute(
             """
             INSERT INTO stock_in_transactions
-                (transaction_date, reference_no, notes, created_by)
-            VALUES (?, ?, ?, ?)
+                (transaction_date, reference_no, notes, created_by, supplier_id)
+            VALUES (?, ?, ?, ?, ?)
             """,
-            (timestamp, reference or None, header_notes or None, created_by),
+            (
+                timestamp, reference or None, header_notes or None,
+                created_by, resolved_supplier,
+            ),
         )
         transaction_id = int(cursor.lastrowid)
 
         result_lines: list[dict[str, Any]] = []
+        batch_ids: list[int] = []
         for line, ingredient in zip(clean_lines, ingredients):
-            conn.execute(
+            detail = conn.execute(
                 """
                 INSERT INTO stock_in_details
                     (stock_in_id, ingredient_id, quantity, unit,
-                     expiration_date, notes)
-                VALUES (?, ?, ?, ?, ?, ?)
+                     expiration_date, notes, unit_cost)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     transaction_id,
@@ -482,7 +539,26 @@ def record_stock_in(
                     ingredient["unit"],
                     line["expiration_date"],
                     line["notes"] or None,
+                    line["unit_cost"],
                 ),
+            )
+            detail_id = int(detail.lastrowid)
+            batch_id = batches.create_batch(
+                conn,
+                ingredient_id=int(line["ingredient_id"]),
+                quantity=line["quantity"],
+                expiration_date=line["expiration_date"],
+                unit_cost=line["unit_cost"],
+                supplier_id=resolved_supplier,
+                stock_in_detail_id=detail_id,
+                received_at=timestamp,
+                notes="Received delivery",
+            )
+            batch_ids.append(batch_id)
+            conn.execute(
+                "UPDATE stock_in_details SET batch_id = ? "
+                "WHERE stock_in_detail_id = ?",
+                (batch_id, detail_id),
             )
             new_balance = _balance_after(
                 ingredient["quantity_on_hand"], line["quantity"]
@@ -510,6 +586,8 @@ def record_stock_in(
                     "quantity": line["quantity"],
                     "unit": ingredient["unit"],
                     "new_balance": new_balance,
+                    "batch_id": batch_id,
+                    "unit_cost": line["unit_cost"],
                 }
             )
 
@@ -519,6 +597,8 @@ def record_stock_in(
         "transaction_date": timestamp,
         "line_count": len(result_lines),
         "lines": result_lines,
+        "batch_ids": batch_ids,
+        "supplier_id": resolved_supplier,
     }
 
 
@@ -543,6 +623,8 @@ def record_stock_out(
     timestamp = database.local_timestamp()
 
     with database.transaction(_resolve_path(db_path)) as conn:
+        # Idempotent DDL + opening-batch backfill for pre-Stage-18 databases.
+        batches.ensure_write_ready(conn)
         ingredients = [
             _ingredient_for_movement(conn, line["ingredient_id"])
             for line in clean_lines
@@ -571,8 +653,9 @@ def record_stock_out(
         transaction_id = int(cursor.lastrowid)
 
         result_lines: list[dict[str, Any]] = []
+        allocation_count = 0
         for line, ingredient in zip(clean_lines, ingredients):
-            conn.execute(
+            detail = conn.execute(
                 """
                 INSERT INTO stock_out_details
                     (stock_out_id, ingredient_id, quantity, unit, notes)
@@ -586,6 +669,16 @@ def record_stock_out(
                     line["notes"] or None,
                 ),
             )
+            detail_id = int(detail.lastrowid)
+            # FEFO allocation is part of the SAME transaction: if any batch
+            # is short, the whole stock-out (header + all lines) rolls back.
+            allocations = batches.allocate(
+                conn,
+                ingredient_id=int(line["ingredient_id"]),
+                quantity=line["quantity"],
+                stock_out_detail_id=detail_id,
+            )
+            allocation_count += len(allocations)
             new_balance = _balance_after(
                 ingredient["quantity_on_hand"], -line["quantity"]
             )
@@ -603,6 +696,7 @@ def record_stock_out(
                     "quantity": line["quantity"],
                     "unit": ingredient["unit"],
                     "new_balance": new_balance,
+                    "batch_ids": [a["batch_id"] for a in allocations],
                 }
             )
 
@@ -612,4 +706,5 @@ def record_stock_out(
         "transaction_date": timestamp,
         "line_count": len(result_lines),
         "lines": result_lines,
+        "allocation_count": allocation_count,
     }

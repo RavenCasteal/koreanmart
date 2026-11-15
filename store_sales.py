@@ -34,6 +34,7 @@ import sqlite3
 from contextlib import contextmanager
 from typing import Any, Iterable, Iterator
 
+import batches
 import database
 import discounts
 import permissions
@@ -312,6 +313,8 @@ def confirm_sale(
     timestamp = database.local_timestamp()
 
     with database.transaction(db_path) as conn:
+        # Idempotent DDL + opening-batch backfill for pre-Stage-18 databases.
+        batches.ensure_write_ready(conn)
         # Re-resolve INSIDE the write transaction: a manager may have retired
         # or repriced a product between the preview and the confirm.
         lines, subtotal, shortages = _resolve_lines(conn, cart_lines)
@@ -341,8 +344,9 @@ def confirm_sale(
         )
         stock_out_id = int(header.lastrowid)
 
+        detail_ids: list[tuple[dict[str, Any], int]] = []
         for line in lines:
-            conn.execute(
+            detail = conn.execute(
                 """
                 INSERT INTO stock_out_details
                     (stock_out_id, ingredient_id, quantity, unit, notes)
@@ -353,6 +357,7 @@ def confirm_sale(
                     line["unit"], f"POS sale {number}",
                 ),
             )
+            detail_ids.append((line, int(detail.lastrowid)))
             conn.execute(
                 "UPDATE ingredients SET quantity_on_hand = ?, updated_at = ? "
                 "WHERE ingredient_id = ?",
@@ -381,6 +386,17 @@ def confirm_sale(
             ),
         )
         sale_id = int(sale_header.lastrowid)
+
+        # 2b - Stage 18: consume FEFO batches and record every allocation.
+        # Same transaction, so a short batch rolls back the whole sale.
+        for line, detail_id in detail_ids:
+            batches.allocate(
+                conn,
+                ingredient_id=int(line["ingredient_id"]),
+                quantity=line["quantity"],
+                stock_out_detail_id=detail_id,
+                sale_id=sale_id,
+            )
 
         # 3 - Immutable per-product snapshots for receipts and voids.
         for line in lines:
@@ -515,8 +531,11 @@ def void_sale(
     timestamp = database.local_timestamp()
 
     with database.transaction(db_path) as conn:
+        # Idempotent DDL + opening-batch backfill for pre-Stage-18 databases.
+        batches.ensure_write_ready(conn)
         header = conn.execute(
-            "SELECT status FROM store_sales WHERE sale_id = ?", (target,)
+            "SELECT status, stock_out_id FROM store_sales WHERE sale_id = ?",
+            (target,),
         ).fetchone()
         if header is None:
             raise ValueError("That sale does not exist.")
@@ -558,6 +577,22 @@ def void_sale(
                 "UPDATE ingredients SET quantity_on_hand = quantity_on_hand + ?, "
                 "updated_at = ? WHERE ingredient_id = ?",
                 (quantity, timestamp, int(item["ingredient_id"])),
+            )
+
+        # Stage 18: put the units back into the EXACT batches that the sale
+        # consumed. Legacy (pre-batch) sales have no allocations, so the
+        # helper creates an unknown-provenance batch instead of guessing.
+        if header[1] is not None:
+            batches.restore_stock_out(
+                conn,
+                stock_out_id=int(header[1]),
+                expected_lines=[
+                    {
+                        "ingredient_id": int(item["ingredient_id"]),
+                        "quantity": float(item["quantity"]),
+                    }
+                    for item in items
+                ],
             )
 
         conn.execute(
