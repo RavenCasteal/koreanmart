@@ -13,6 +13,9 @@ Rules that matter in a shared counter PC:
   * A manager cannot deactivate their own account, and the system refuses to
     deactivate the LAST active manager (that would lock everyone out of the
     management screens permanently).
+  * User references must be EXACT integers (or plain digit strings). A
+    fractional / invalid value is rejected, never truncated into another
+    account's primary key.
   * Deactivation is a status change, never a DELETE: sales_transactions and
     stock transactions keep their created_by / voided_by foreign keys valid.
 """
@@ -34,6 +37,50 @@ USER_COLUMNS = (
     "user_id", "username", "full_name", "role", "is_active",
     "must_change_password", "created_at", "last_login_at",
 )
+
+
+def _validate_user_id(value: Any) -> int:
+    """Return an exact integer primary key, never a coerced / truncated one.
+
+    ``int()`` is not a validator: ``int(2.9) == 2`` and ``int(True) == 1``, so
+    a stray float or boolean could deactivate or reset the password of a
+    DIFFERENT account. Only exact integers (or plain digit strings, which is
+    what a form / session may supply) are accepted; anything fractional,
+    negative, zero, or non-numeric is rejected before any SQL is issued.
+    """
+    if isinstance(value, bool):
+        raise ValueError("Invalid user reference.")
+    if isinstance(value, int):
+        key = value
+    elif isinstance(value, str):
+        text = value.strip()
+        if not text.isascii() or not text.isdigit():
+            raise ValueError("Invalid user reference.")
+        key = int(text)
+    else:
+        raise ValueError("Invalid user reference.")
+    if key <= 0:
+        raise ValueError("Invalid user reference.")
+    return key
+
+
+def _actor_user_id(actor: Any) -> int | None:
+    """Read the actor's id the way permissions.role_of() reads its role.
+
+    Sessions are normally dicts, but permissions also accepts row-like objects
+    exposing ``role`` as an attribute. Those objects expose ``user_id`` the
+    same way, so the self-deactivation guard must not silently ignore them.
+    """
+    if actor is None:
+        return None
+    raw = (
+        actor.get("user_id")
+        if isinstance(actor, dict)
+        else getattr(actor, "user_id", None)
+    )
+    if raw is None:
+        return None
+    return _validate_user_id(raw)
 
 
 def validate_username(value: Any) -> str:
@@ -143,18 +190,17 @@ def set_user_active(
 ) -> None:
     """Activate / deactivate an account without deleting any history."""
     permissions.require(actor, permissions.CAP_MANAGE_USERS)
-    try:
-        key = int(user_id)
-    except (TypeError, ValueError) as exc:
-        raise ValueError("Invalid user reference.") from exc
+    key = _validate_user_id(user_id)
     flag = 1 if bool(active) else 0
 
     # Use the same actor resolution as permissions.require(): an explicit
     # actor wins, otherwise the live login session is used. Without this
     # fallback a caller that omits `actor` could deactivate its own account.
+    # `_actor_user_id` mirrors permissions.role_of(), so a supported non-dict
+    # actor exposing role/user_id attributes is covered too.
     effective = actor if actor is not None else permissions.current_session()
-    actor_id = effective.get("user_id") if isinstance(effective, dict) else None
-    if not flag and actor_id is not None and int(actor_id) == key:
+    actor_id = _actor_user_id(effective)
+    if not flag and actor_id is not None and actor_id == key:
         raise ValueError("You cannot deactivate your own account.")
 
     with database.transaction(db_path) as conn:
@@ -183,10 +229,7 @@ def reset_password(
 ) -> None:
     """Manager sets a temporary password; the user must change it at login."""
     permissions.require(actor, permissions.CAP_MANAGE_USERS)
-    try:
-        key = int(user_id)
-    except (TypeError, ValueError) as exc:
-        raise ValueError("Invalid user reference.") from exc
+    key = _validate_user_id(user_id)
     database.validate_password_strength(
         str(new_password if new_password is not None else "")
     )

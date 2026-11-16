@@ -39,6 +39,7 @@ import tempfile
 import unittest
 from contextlib import closing
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import database
@@ -676,6 +677,118 @@ class UsersRepositoryTests(_TempDB):
             users.reset_password(
                 9999, TEMP_PASSWORD, db_path=self.db_path, actor=MANAGER
             )
+
+    def test_fractional_ids_never_retarget_another_account(self) -> None:
+        """int(2.9) == 2 used to deactivate / reset a DIFFERENT account."""
+        key = self._create_cashier()
+        before_hash = self._hash()
+        before_row = self._query(
+            "SELECT is_active, password_hash FROM users WHERE user_id = ?",
+            (key,),
+        )[0]
+        bad_ids = (
+            2.9, 1.5, 2.0, True, "2.9", "2.0", " 2.5 ", "1e3",
+            None, "abc", "", "   ", 0, -1, "-2",
+        )
+        for bad in bad_ids:
+            with self.subTest(user_id=bad):
+                with self.assertRaisesRegex(ValueError, "Invalid user reference"):
+                    users.set_user_active(
+                        bad, False, db_path=self.db_path, actor=MANAGER
+                    )
+                with self.assertRaisesRegex(ValueError, "Invalid user reference"):
+                    users.reset_password(
+                        bad, TEMP_PASSWORD, db_path=self.db_path, actor=MANAGER
+                    )
+        after_row = self._query(
+            "SELECT is_active, password_hash FROM users WHERE user_id = ?",
+            (key,),
+        )[0]
+        self.assertEqual(after_row["is_active"], before_row["is_active"])
+        self.assertEqual(
+            after_row["password_hash"], before_row["password_hash"]
+        )
+        self.assertEqual(self._hash(), before_hash)
+
+    def test_exact_integer_and_digit_string_ids_still_work(self) -> None:
+        """The stricter check must not break real form / session references."""
+        key = self._create_cashier()
+        users.set_user_active(
+            str(key), False, db_path=self.db_path, actor=MANAGER
+        )
+        self.assertEqual(
+            self._query(
+                "SELECT is_active FROM users WHERE user_id = ?", (key,)
+            )[0][0], 0,
+        )
+        users.set_user_active(
+            f"  {key}  ", True, db_path=self.db_path, actor=MANAGER
+        )
+        self.assertEqual(
+            self._query(
+                "SELECT is_active FROM users WHERE user_id = ?", (key,)
+            )[0][0], 1,
+        )
+        users.reset_password(
+            key, "Another2026!", db_path=self.db_path, actor=MANAGER
+        )
+        self.assertTrue(
+            database.verify_password(
+                "Another2026!",
+                self._query(
+                    "SELECT password_hash FROM users WHERE user_id = ?", (key,)
+                )[0][0],
+            )
+        )
+
+    def test_non_dict_actor_cannot_deactivate_its_own_account(self) -> None:
+        """permissions.role_of() accepts attribute-style sessions too."""
+        # A second manager makes sure the "last active manager" guard cannot
+        # be the reason this raises, so we really test the self-deactivation
+        # guard.
+        users.create_user(
+            "owner", TEMP_PASSWORD, "Owner", permissions.ROLE_MANAGER,
+            db_path=self.db_path, actor=MANAGER,
+        )
+        for actor in (
+            SimpleNamespace(role=permissions.ROLE_MANAGER, user_id=1),
+            SimpleNamespace(role=permissions.ROLE_MANAGER, user_id="1"),
+        ):
+            with self.subTest(actor=actor):
+                self.assertTrue(
+                    permissions.can(actor, permissions.CAP_MANAGE_USERS)
+                )
+                with self.assertRaisesRegex(ValueError, "your own account"):
+                    users.set_user_active(
+                        1, False, db_path=self.db_path, actor=actor
+                    )
+        self.assertEqual(
+            self._query("SELECT is_active FROM users WHERE user_id = 1")[0][0], 1
+        )
+
+    def test_non_dict_actor_can_still_deactivate_a_different_account(self) -> None:
+        """The self guard must not turn into a blanket denial."""
+        owner = users.create_user(
+            "owner", TEMP_PASSWORD, "Owner", permissions.ROLE_MANAGER,
+            db_path=self.db_path, actor=MANAGER,
+        )
+        actor = SimpleNamespace(
+            role=permissions.ROLE_MANAGER, user_id=owner
+        )
+        users.set_user_active(1, False, db_path=self.db_path, actor=actor)
+        self.assertEqual(
+            self._query("SELECT is_active FROM users WHERE user_id = 1")[0][0], 0
+        )
+
+    def test_non_dict_session_fallback_blocks_self_deactivation(self) -> None:
+        permissions.set_session(
+            SimpleNamespace(role=permissions.ROLE_MANAGER, user_id=1)
+        )
+        with self.assertRaisesRegex(ValueError, "your own account"):
+            users.set_user_active(1, False, db_path=self.db_path)
+        self.assertEqual(
+            self._query("SELECT is_active FROM users WHERE user_id = 1")[0][0], 1
+        )
 
     def test_a_live_cashier_session_blocks_account_writes_without_an_actor(self) -> None:
         """Defence in depth: omitting `actor` is NOT a bypass."""
