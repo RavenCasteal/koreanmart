@@ -32,6 +32,9 @@ config/
 *_out.txt
 tests_out.txt
 
+# GUI smoke-test harnesses (development tools, not needed to run the app)
+stage*_smoke.py
+
 # OS files
 Thumbs.db
 .DESKTOP
