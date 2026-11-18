@@ -1,4 +1,4 @@
-# Ramen Inventory System - Python 3.13 (Windows 10/11)
+# COOLITS Korean Mart - Python 3.13 (Windows 10/11)
 #
 # Install with:  python -m pip install -r requirements.txt
 #

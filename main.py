@@ -1,5 +1,5 @@
 """
-Neighborhood Mart - application entry point (Stage 12 build)
+COOLITS Korean Mart - application entry point (Stage 12 build)
 =======================================================================
 Run with:  .venv\\Scripts\\python.exe main.py
        or: double-click run.bat          (no console window)
@@ -100,7 +100,7 @@ class App(ctk.CTk):
         self.current_user: dict[str, Any] | None = None
         self.view: ctk.CTkFrame | None = None
 
-        self.title("Neighborhood Mart  |  Inventory & Point of Sale")
+        self.title("COOLITS Korean Mart  |  Inventory & Point of Sale")
         self.minsize(1000, 640)
         self.configure(fg_color=CREAM)
         self._set_icon()

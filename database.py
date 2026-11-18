@@ -1,5 +1,5 @@
 """
-Ramen Inventory System - database layer
+COOLITS Korean Mart - database layer
 =======================================
 All SQLite access lives in this module. The user interface (pages/,
 components/) must never write SQL directly.

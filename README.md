@@ -1,7 +1,8 @@
-# Neighborhood Mart - Inventory & POS System
+# COOLITS Korean Mart - Inventory & POS System
 
-A Windows-local, offline desktop application for a 7/11-style convenience
-store with barcode scanning, inventory management, and receipt printing.
+A Windows-local, offline desktop application for COOLITS Korean Mart
+(Pasalubong Center) with barcode scanning, inventory management, and
+receipt printing.
 
 ## Tech Stack
 

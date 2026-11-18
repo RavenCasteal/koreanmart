@@ -8,8 +8,9 @@ if not exist ".venv\Scripts\python.exe" (
     exit /b 1
 )
 
-rem Debugging launcher: keeps the console visible so print/traceback output
-rem can be read directly. Normal use should be run.bat (no console).
+rem COOLITS Korean Mart debugging launcher.
+rem Keeps the console visible so print/traceback output can be read directly.
+rem Normal use should be run.bat (no console).
 ".venv\Scripts\python.exe" main.py
 if errorlevel 1 (
     echo.

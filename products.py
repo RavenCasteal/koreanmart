@@ -42,7 +42,7 @@ import batches
 import database
 import permissions
 
-STORE_LABEL = "Neighborhood Mart"
+STORE_LABEL = "COOLITS Korean Mart"
 CATALOG_VERSION = "12"
 # Stage 15 adds discount columns to store_sales. This is an app_meta marker,
 # NOT a PRAGMA user_version bump: database.py / schema.sql stay at v4.

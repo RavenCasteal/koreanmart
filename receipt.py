@@ -56,13 +56,13 @@ RECEIPTS_DIR = BASE_DIR / "receipts"
 CONFIG_DIR = BASE_DIR / "config"
 PRINTER_CONFIG_PATH = CONFIG_DIR / "printer.json"
 
-STORE_NAME = "RAMEN HOUSE"
-STORE_TAGLINE = "Regular Ramen"
-MART_NAME = "NEIGHBORHOOD MART"
-MART_TAGLINE = "Foods  ·  Drinks  ·  Everyday needs"
-# Stage 14: the single-line tagline above is 34 characters and would wrap on
-# 32-column 58 mm paper. Print it as two centred lines instead.
-MART_TAGLINE_LINES = ("Foods  ·  Drinks", "Everyday needs")
+STORE_NAME = "COOLITS KOREAN MART"
+STORE_TAGLINE = "Pasalubong Center"
+MART_NAME = "COOLITS KOREAN MART"
+MART_TAGLINE = "PASALUBONG CENTER  ·  Korean & Filipino goods"
+# Stage 14: the single-line tagline above would wrap on 32-column 58 mm
+# paper. Print it as two centred ASCII lines instead.
+MART_TAGLINE_LINES = ("PASALUBONG CENTER", "Korean & Filipino goods")
 RECEIPT_WIDTH = 32  # 58 mm thermal paper, monospaced
 
 _ESC = b"\x1b"
@@ -540,7 +540,7 @@ def _raw_print(
     doc_open = False
     try:
         job = win32print.StartDocPrinter(
-            handle, 1, ("Neighborhood Mart Receipt", None, "RAW")
+            handle, 1, ("COOLITS Korean Mart Receipt", None, "RAW")
         )
         doc_open = True
         win32print.StartPagePrinter(handle)

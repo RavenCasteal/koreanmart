@@ -84,7 +84,7 @@ class DashboardView(ctk.CTkFrame):
         ).pack(side="left")
         ctk.CTkLabel(
             intro,
-            text="Store:  Neighborhood Mart",
+            text="Store:  COOLITS Korean Mart",
             font=font(12, "bold"),
             text_color=ACCENT,
         ).pack(side="right")
@@ -98,8 +98,8 @@ class DashboardView(ctk.CTkFrame):
         for column in range(4):
             cards.grid_columnconfigure(column, weight=1)
 
-        self._stat_card(cards, 0, "Store", "Neighborhood Mart",
-                        "Foods, drinks & everyday needs", ACCENT, value_size=17)
+        self._stat_card(cards, 0, "Store", "COOLITS Korean Mart",
+                        "Pasalubong Center · foods & everyday needs", ACCENT, value_size=17)
         self._stat_card(cards, 1, "Total products",
                         data["total_ingredients"],
                         "Active items in the catalog", ACCENT)

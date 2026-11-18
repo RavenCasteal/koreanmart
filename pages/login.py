@@ -9,9 +9,11 @@ ChangePasswordDialog: modal dialog used on first login (forced) and later
 from __future__ import annotations
 
 import sqlite3
+from pathlib import Path
 from typing import Any, Callable
 
 import customtkinter as ctk
+from PIL import Image
 
 import database
 from components.theme import (
@@ -28,6 +30,8 @@ from components.theme import (
     TEXT_ON_DARK,
     font,
 )
+
+LOGO_PATH = Path(__file__).resolve().parent.parent / "assets" / "images" / "coolits_logo_round.png"
 
 
 class LoginView(ctk.CTkFrame):
@@ -61,22 +65,35 @@ class LoginView(ctk.CTkFrame):
         inner = ctk.CTkFrame(brand, fg_color="transparent")
         inner.place(relx=0.5, rely=0.46, anchor="center")
 
-        ctk.CTkLabel(
-            inner,
-            text="SINGLE MENU ITEM",
-            fg_color=ACCENT,
-            corner_radius=6,
-            text_color="#FFFFFF",
-            font=font(11, "bold"),
-            width=140,
-            height=26,
-        ).pack(anchor="w", pady=(0, 28))
+        # COOLITS Korean Mart logo (kept alive on self for tkinter).
+        self._logo_image: Any = None
+        if LOGO_PATH.is_file():
+            try:
+                self._logo_image = ctk.CTkImage(
+                    light_image=Image.open(LOGO_PATH),
+                    dark_image=Image.open(LOGO_PATH),
+                    size=(148, 148),
+                )
+                ctk.CTkLabel(
+                    inner, image=self._logo_image, text=""
+                ).pack(anchor="w", pady=(0, 18))
+            except Exception:
+                self._logo_image = None
 
         ctk.CTkLabel(
             inner,
-            text="Ramen\nInventory\nSystem",
-            font=font(38, "bold"),
+            text="COOLITS Korean Mart",
+            font=font(28, "bold"),
             text_color=TEXT_ON_DARK,
+            justify="left",
+            anchor="w",
+        ).pack(anchor="w", pady=(0, 6))
+
+        ctk.CTkLabel(
+            inner,
+            text="PASALUBONG CENTER",
+            font=font(12, "bold"),
+            text_color=ACCENT,
             justify="left",
             anchor="w",
         ).pack(anchor="w")
@@ -95,7 +112,7 @@ class LoginView(ctk.CTkFrame):
 
         ctk.CTkLabel(
             inner,
-            text="Regular Ramen only",
+            text="Scan • Ring up • Print receipt",
             font=font(12),
             text_color="#9E9387",
             anchor="w",
@@ -103,7 +120,7 @@ class LoginView(ctk.CTkFrame):
 
         ctk.CTkLabel(
             brand,
-            text="College Capstone Project  ·  Final build",
+            text="Inventory & Point of Sale  ·  Final build",
             font=font(11),
             text_color="#9E9387",
         ).place(relx=0.5, rely=0.94, anchor="center")

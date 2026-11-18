@@ -379,7 +379,7 @@ class OutputTests(_Stage13Case):
         summary = sales_report.daily_summary(db_path=self.db_path)
         text = sales_report.build_z_read(summary)
         for expected in (
-            "NEIGHBORHOOD MART", "Z-READ", "NET SALES", "PAYMENT MIX",
+            "COOLITS KOREAN MART", "Z-READ", "NET SALES", "PAYMENT MIX",
             "CASHIER TOTALS", "TOP PRODUCTS", "VOIDED SALES",
             CURRENCY_CODE, CURRENCY_SYMBOL,
             format_money(127.00), format_money(63.50),

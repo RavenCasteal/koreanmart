@@ -13,6 +13,7 @@ if not exist ".venv\Scripts\pythonw.exe" (
     exit /b 1
 )
 
+rem COOLITS Korean Mart launcher.
 rem pythonw.exe starts the GUI WITHOUT a console window (Stage 8).
 rem Startup and runtime errors are still recorded in logs\error.log by main.py.
 rem To see a console while debugging, use run_debug.bat instead.
