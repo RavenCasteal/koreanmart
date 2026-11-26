@@ -82,4 +82,4 @@ tests/               - Unit tests (892 tests)
 
 ## License
 
-This is a capstone project. No license granted for redistribution.
+Non-commercial educational use only. See `LICENSE` for full terms.
