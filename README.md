@@ -13,29 +13,54 @@ receipt printing.
 - **PBKDF2-HMAC-SHA256** for password hashing (200k iterations)
 - **pywin32** (optional, Windows-only) for ESC/POS thermal printer support
 
+## Prerequisites
+
+| Requirement | Needed? | Where to get it |
+|---|---|---|
+| **Python 3.13 (Windows 10/11)** | Yes | [python.org/downloads/windows](https://www.python.org/downloads/windows/). Download the 64-bit installer. During setup, check **"Add python.exe to PATH"** and leave **tcl/tk** enabled (it is on by default — CustomTkinter needs it). |
+| **CustomTkinter 5.2.x** | Yes | Installed automatically from `requirements.txt` (see below). |
+| **Pillow 11.x** | Yes | Installed automatically from `requirements.txt`. |
+| **pywin32** | Optional | Included in `requirements.txt` on Windows. Only used for direct ESC/POS printing to a thermal receipt printer; the app runs without it. |
+| **SQLite** | No | Built into Python as the `sqlite3` module. Nothing to install. |
+| **DB Browser for SQLite** | No | Optional viewer only, for inspecting the `.db` file by hand. The app does not use it. |
+
+You need the **entire project folder**, not just `main.py` — the launchers rely on
+`pages/`, `components/`, `assets/` and the other files sitting beside it.
+
 ## Quick Start
 
-1. Create a virtual environment:
+1. **Get the code.** On the GitHub page click **Code → Download ZIP**, then
+   unzip it to a folder such as `C:\NeighborhoodMart`. Alternatively, if you
+   have Git installed:
+   ```
+   git clone https://github.com/RavenCasteal/koreanmart.git NeighborhoodMart
+   ```
+
+2. **Open a terminal in that folder** (in File Explorer, click the address bar,
+   type `cmd`, and press Enter).
+
+3. **Create a virtual environment and install dependencies:**
    ```
    python -m venv .venv
-   .venv\Scripts\activate
-   pip install -r requirements.txt
+   .venv\Scripts\python.exe -m pip install -r requirements.txt
    ```
+   This installs CustomTkinter, Pillow, and (on Windows) pywin32. Their smaller
+   dependencies (`darkdetect`, `packaging`) are pulled in automatically.
 
-2. Run the app:
+4. **Run the app.** Double-click `run.bat`, or from the terminal:
    ```
-   python main.py
+   .venv\Scripts\python.exe main.py
    ```
-   Or use the batch files:
-   ```
-   run.bat         (windowed mode, pythonw)
-   run_debug.bat   (console mode, shows errors)
-   ```
+   Use `run_debug.bat` instead if you need to see error output in a console.
 
-3. First login:
+5. **First login:**
    - Username: `admin`
    - Password: see `database.py` (`DEFAULT_ADMIN_PASSWORD`)
-   - You will be forced to change the password on first login.
+   - You will be forced to change the password on first login. Change it before
+     using the app on a real counter — the default is public in this repository.
+
+The database, `receipts/`, `logs/` and `backups/` folders are all created
+automatically on first launch. No manual database setup is required.
 
 ## Features
 
