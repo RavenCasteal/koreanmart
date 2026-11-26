@@ -39,22 +39,26 @@ You need the **entire project folder**, not just `main.py` — the launchers rel
    git clone https://github.com/RavenCasteal/koreanmart.git NeighborhoodMart
    ```
 
-2. **Open a terminal in that folder** (in File Explorer, click the address bar,
-   type `cmd`, and press Enter).
+2. **Run first-time setup.** Double-click **`setup.bat`**. It creates the
+   virtual environment and installs CustomTkinter, Pillow and (on Windows)
+   pywin32 in one go. It needs internet for this one step, and tells you
+   clearly if Python is missing. Wait for the "Setup complete" message.
 
-3. **Create a virtual environment and install dependencies:**
+   If you prefer doing it by hand, open a terminal in the folder (click the
+   address bar, type `cmd`, press Enter) and run:
    ```
    python -m venv .venv
    .venv\Scripts\python.exe -m pip install -r requirements.txt
    ```
-   This installs CustomTkinter, Pillow, and (on Windows) pywin32. Their smaller
-   dependencies (`darkdetect`, `packaging`) are pulled in automatically.
 
-4. **Run the app.** Double-click `run.bat`, or from the terminal:
+3. **Run the app.** Double-click `run.bat`, or from the terminal:
    ```
    .venv\Scripts\python.exe main.py
    ```
    Use `run_debug.bat` instead if you need to see error output in a console.
+
+   Do not skip step 2. If `run.bat` says "Local virtual environment not
+   found", setup was not completed — run `setup.bat` first.
 
 5. **First login:**
    - Username: `admin`
