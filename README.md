@@ -4,6 +4,9 @@ A Windows-local, offline desktop application for COOLITS Korean Mart
 (Pasalubong Center) with barcode scanning, inventory management, and
 receipt printing.
 
+**For store owners and daily use, see [USER_GUIDE.md](USER_GUIDE.md).**
+It covers setup, selling, stock, reports, printing, backups and troubleshooting.
+
 ## Tech Stack
 
 - **Python 3.13** (standard library only, plus CustomTkinter + Pillow)
