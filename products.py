@@ -154,6 +154,31 @@ _INDEX_DDL: tuple[str, ...] = (
     "ON ingredients (category)",
 )
 
+# Read-only convenience name for database browsers. The proven stock ledger
+# table stays `ingredients` (30+ modules, the v1-v4 schema chain and all 892
+# tests depend on it), but anyone opening the DB now sees a `products` view
+# with product-friendly column names. All app writes still go to the table.
+_PRODUCTS_VIEW_DDL: tuple[str, ...] = (
+    "DROP VIEW IF EXISTS products",
+    """
+    CREATE VIEW products AS
+    SELECT ingredient_id AS product_id,
+           name,
+           unit,
+           quantity_on_hand,
+           minimum_stock,
+           expiration_date,
+           is_active,
+           created_at,
+           updated_at,
+           barcode,
+           category,
+           unit_price,
+           is_sellable
+    FROM ingredients
+    """,
+)
+
 # ----------------------------------------------------------------------
 # Stage 18 - database-level guards for the Stage 15 discount columns.
 #
@@ -358,6 +383,8 @@ def ensure_schema(db_path: Any = None) -> dict[str, Any]:
                 conn.execute(statement)
                 added_sale_columns.append(name)
         for statement in _INDEX_DDL:
+            conn.execute(statement)
+        for statement in _PRODUCTS_VIEW_DDL:
             conn.execute(statement)
         # Stage 18: additive batch/supplier tables, discount guards and the
         # one-time opening-batch backfill. All inside the SAME transaction,

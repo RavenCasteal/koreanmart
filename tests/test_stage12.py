@@ -137,6 +137,31 @@ class SchemaTests(_Stage12Case):
         }
         self.assertIn("ux_ingredients_active_barcode", indexes)
 
+    def test_products_view_mirrors_the_ingredients_catalog(self) -> None:
+        views = {
+            row["name"] for row in self._query(
+                "SELECT name FROM sqlite_master WHERE type = 'view'"
+            )
+        }
+        self.assertIn("products", views)
+        self.assertEqual(
+            self._scalar("SELECT COUNT(*) FROM products"),
+            self._scalar("SELECT COUNT(*) FROM ingredients"),
+        )
+        expected = self._scalar(
+            "SELECT ingredient_id FROM ingredients ORDER BY ingredient_id LIMIT 1"
+        )
+        actual = self._scalar(
+            "SELECT product_id FROM products ORDER BY product_id LIMIT 1"
+        )
+        self.assertEqual(actual, expected)
+        # Re-running the migration keeps the view in sync.
+        products.ensure_schema(self.db_path)
+        self.assertEqual(
+            self._scalar("SELECT COUNT(*) FROM products"),
+            self._scalar("SELECT COUNT(*) FROM ingredients"),
+        )
+
     def test_user_version_is_not_changed_by_stage12(self) -> None:
         # Stage 12 is additive; database.py keeps its own v1-v4 chain.
         self.assertEqual(
